@@ -1,0 +1,53 @@
+-- CSE degree core, lab, and project courses, including shared EEE foundations.
+insert into public.courses (course_code, course_name)
+values
+  ('CSE115', 'Programming Language I'),
+  ('CSE115L', 'Programming Language I Lab'),
+  ('CSE173', 'Discrete Mathematics'),
+  ('CSE215', 'Programming Language II'),
+  ('CSE215L', 'Programming Language II Lab'),
+  ('CSE225', 'Data Structures and Algorithms'),
+  ('CSE225L', 'Data Structures and Algorithms Lab'),
+  ('CSE231', 'Digital Logic Design'),
+  ('CSE231L', 'Digital Logic Design Lab'),
+  ('EEE141', 'Electrical Circuits I'),
+  ('EEE141L', 'Electrical Circuits I Lab'),
+  ('EEE111', 'Analog Electronics I'),
+  ('EEE111L', 'Analog Electronics I Lab'),
+  ('CSE311', 'Database Systems'),
+  ('CSE311L', 'Database Systems Lab'),
+  ('CSE323', 'Operating Systems Design'),
+  ('CSE327', 'Software Engineering'),
+  ('CSE331', 'Microprocessor Interfacing and Embedded Systems'),
+  ('CSE331L', 'Microprocessor Interfacing and Embedded Systems Lab'),
+  ('CSE332', 'Computer Organization and Architecture'),
+  ('CSE373', 'Design and Analysis of Algorithms'),
+  ('CSE425', 'Concepts of Programming Language'),
+  ('CSE299', 'Junior Design Project I'),
+  ('CSE499A', 'Senior Design Project I'),
+  ('CSE499B', 'Senior Design Project II');
+
+-- Additional EEE degree core, lab, and project courses.
+insert into public.courses (course_code, course_name)
+values
+  ('EEE211', 'Digital Logic Design'),
+  ('EEE211L', 'Digital Logic Design Lab'),
+  ('EEE241', 'Electrical Circuits II'),
+  ('EEE241L', 'Electrical Circuits II Lab'),
+  ('EEE221', 'Signals and Systems'),
+  ('EEE311', 'Analog Electronics II'),
+  ('EEE311L', 'Analog Electronics II Lab'),
+  ('EEE361', 'Electromagnetic Fields and Waves'),
+  ('EEE312', 'Power Electronics'),
+  ('EEE312L', 'Power Electronics Lab'),
+  ('EEE321', 'Introduction to Communication Systems'),
+  ('EEE321L', 'Introduction to Communication Systems Lab'),
+  ('EEE342', 'Control Engineering'),
+  ('EEE342L', 'Control Engineering Lab'),
+  ('EEE362', 'Power Systems'),
+  ('EEE362L', 'Power Systems Lab'),
+  ('EEE363', 'Electrical Machines'),
+  ('EEE363L', 'Electrical Machines Lab'),
+  ('EEE299', 'Junior Design Project I'),
+  ('EEE499', 'Senior Design Project I'),
+  ('EEE499B', 'Senior Design Project II');
