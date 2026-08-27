@@ -5,6 +5,7 @@ import { ApplicantActions } from "@/app/projects/[id]/applicant-actions";
 import { ApplicationForm } from "@/app/projects/[id]/application-form";
 import { CommentControls } from "@/app/projects/[id]/comment-controls";
 import { CommentForm } from "@/app/projects/[id]/comment-form";
+import { ReportControls } from "@/app/projects/[id]/report-controls";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
 import { ProjectsHeader } from "@/app/projects/projects-header";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
@@ -129,6 +130,7 @@ export default async function ProjectDetailPage({
     teamMembershipsResult,
     applicationResult,
     commentsResult,
+    projectReportResult,
   ] = await Promise.all([
       supabase
         .from("courses")
@@ -156,6 +158,12 @@ export default async function ProjectDetailPage({
         .select("id, user_id, content, created_at, updated_at")
         .eq("project_id", project.id)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("reports")
+        .select("id")
+        .eq("reporter_id", user.id)
+        .eq("target_project_id", project.id)
+        .maybeSingle(),
     ]);
 
   if (
@@ -163,7 +171,8 @@ export default async function ProjectDetailPage({
     ownerResult.error ||
     teamMembershipsResult.error ||
     applicationResult.error ||
-    commentsResult.error
+    commentsResult.error ||
+    projectReportResult.error
   ) {
     throw new Error("Unable to load partner post details.");
   }
@@ -187,6 +196,8 @@ export default async function ProjectDetailPage({
     project.status.charAt(0).toUpperCase() + project.status.slice(1);
   const acceptedMemberCount = teamMembershipRows.length;
   const commentRows = commentsResult.data as CommentRow[];
+  const projectAlreadyReported = Boolean(projectReportResult.data);
+  const reportedCommentIds = new Set<string>();
   let teamMembers: TeamMemberDetails[] = [];
   let applicants: ApplicantDetails[] = [];
   let comments: CommentDetails[] = [];
@@ -195,13 +206,29 @@ export default async function ProjectDetailPage({
     const commentAuthorIds = [
       ...new Set(commentRows.map((comment) => comment.user_id)),
     ];
-    const commentAuthorsResult = await supabase
-      .from("profiles")
-      .select("id, full_name, department, graduation_year")
-      .in("id", commentAuthorIds);
+    const [commentAuthorsResult, commentReportsResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, department, graduation_year")
+        .in("id", commentAuthorIds),
+      supabase
+        .from("reports")
+        .select("target_comment_id")
+        .eq("reporter_id", user.id)
+        .in(
+          "target_comment_id",
+          commentRows.map((comment) => comment.id),
+        ),
+    ]);
 
-    if (commentAuthorsResult.error) {
-      throw new Error("Unable to load comment authors.");
+    if (commentAuthorsResult.error || commentReportsResult.error) {
+      throw new Error("Unable to load comment details.");
+    }
+
+    for (const report of commentReportsResult.data) {
+      if (report.target_comment_id) {
+        reportedCommentIds.add(report.target_comment_id);
+      }
     }
 
     const commentAuthorById = new Map(
@@ -418,6 +445,16 @@ export default async function ProjectDetailPage({
                 </dd>
               </div>
             </dl>
+
+            {!isOwner && (
+              <div className="mt-6 border-t border-zinc-200 pt-5 dark:border-zinc-800">
+                <ReportControls
+                  target="project"
+                  targetId={project.id}
+                  alreadyReported={projectAlreadyReported}
+                />
+              </div>
+            )}
           </div>
 
           <section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
@@ -682,11 +719,19 @@ export default async function ProjectDetailPage({
                       {comment.content}
                     </p>
 
-                    {comment.user_id === user.id && (
+                    {comment.user_id === user.id ? (
                       <CommentControls
                         commentId={comment.id}
                         content={comment.content}
                       />
+                    ) : (
+                      <div className="mt-4">
+                        <ReportControls
+                          target="comment"
+                          targetId={comment.id}
+                          alreadyReported={reportedCommentIds.has(comment.id)}
+                        />
+                      </div>
                     )}
                   </li>
                 ))}

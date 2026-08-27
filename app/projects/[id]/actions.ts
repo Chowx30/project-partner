@@ -8,9 +8,11 @@ import {
   COMMENT_MAX_LENGTH,
   type CommentFormState,
   type ManageApplicationFormState,
+  type ReportFormState,
 } from "@/app/projects/[id]/form-state";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import { isUuid } from "@/src/lib/profile/validation";
+import { validateReportInput } from "@/src/lib/reports/validation";
 import { createClient } from "@/src/lib/supabase/server";
 
 function formError(message: string): ApplicationFormState {
@@ -131,6 +133,140 @@ function validatedCommentContent(formData: FormData) {
   }
 
   return content;
+}
+
+function reportError(message: string): ReportFormState {
+  return { status: "error", message };
+}
+
+function reportValidationError(
+  validation: Extract<ReturnType<typeof validateReportInput>, { valid: false }>,
+): ReportFormState {
+  return {
+    status: "error",
+    reasonError: validation.reasonError,
+    detailsError: validation.detailsError,
+  };
+}
+
+function isDuplicateReportError(error: { code?: string }) {
+  return error.code === "23505";
+}
+
+export async function reportProjectAction(
+  projectId: string,
+  _previousState: ReportFormState,
+  formData: FormData,
+): Promise<ReportFormState> {
+  void _previousState;
+
+  const { user } = await requireCompletedProfile();
+
+  if (!isUuid(projectId)) {
+    return reportError("This project could not be found.");
+  }
+
+  const validation = validateReportInput(formData);
+
+  if (!validation.valid) {
+    return reportValidationError(validation);
+  }
+
+  const supabase = await createClient();
+  const projectResult = await supabase
+    .from("projects")
+    .select("owner_id")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (projectResult.error || !projectResult.data) {
+    return reportError("This project could not be found.");
+  }
+
+  if (projectResult.data.owner_id === user.id) {
+    return reportError("You cannot report your own project.");
+  }
+
+  const { error } = await supabase.from("reports").insert({
+    reporter_id: user.id,
+    target_project_id: projectId,
+    reason: validation.reason,
+    details: validation.details,
+  });
+
+  if (error) {
+    if (isDuplicateReportError(error)) {
+      return reportError("You have already reported this project.");
+    }
+
+    if (error.code === "23503") {
+      return reportError("This project could not be found.");
+    }
+
+    return reportError("Could not submit this report. Please try again.");
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+
+  return { status: "success", message: "Report submitted." };
+}
+
+export async function reportProjectCommentAction(
+  commentId: string,
+  _previousState: ReportFormState,
+  formData: FormData,
+): Promise<ReportFormState> {
+  void _previousState;
+
+  const { user } = await requireCompletedProfile();
+
+  if (!isUuid(commentId)) {
+    return reportError("This comment could not be found.");
+  }
+
+  const validation = validateReportInput(formData);
+
+  if (!validation.valid) {
+    return reportValidationError(validation);
+  }
+
+  const supabase = await createClient();
+  const commentResult = await supabase
+    .from("comments")
+    .select("user_id, project_id")
+    .eq("id", commentId)
+    .maybeSingle();
+
+  if (commentResult.error || !commentResult.data) {
+    return reportError("This comment could not be found.");
+  }
+
+  if (commentResult.data.user_id === user.id) {
+    return reportError("You cannot report your own comment.");
+  }
+
+  const { error } = await supabase.from("reports").insert({
+    reporter_id: user.id,
+    target_comment_id: commentId,
+    reason: validation.reason,
+    details: validation.details,
+  });
+
+  if (error) {
+    if (isDuplicateReportError(error)) {
+      return reportError("You have already reported this comment.");
+    }
+
+    if (error.code === "23503") {
+      return reportError("This comment could not be found.");
+    }
+
+    return reportError("Could not submit this report. Please try again.");
+  }
+
+  revalidatePath(`/projects/${commentResult.data.project_id}`);
+
+  return { status: "success", message: "Report submitted." };
 }
 
 export async function createProjectCommentAction(
