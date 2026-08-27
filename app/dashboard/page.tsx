@@ -81,6 +81,21 @@ export default async function DashboardPage() {
             {snapshot.profile.department} · {user.email}
           </p>
 
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/projects"
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+            >
+              Browse partner posts
+            </Link>
+            <Link
+              href="/projects/new"
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              Create partner post
+            </Link>
+          </div>
+
           <div className="mt-10 grid gap-5 md:grid-cols-2">
             <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
               <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
