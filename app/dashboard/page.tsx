@@ -3,6 +3,12 @@ import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/app/auth/actions";
 import { getAuthenticatedUser } from "@/src/lib/auth/session";
+import {
+  type CourseOption,
+  getOnboardingSnapshot,
+  type SkillOption,
+} from "@/src/lib/profile/data";
+import { createClient } from "@/src/lib/supabase/server";
 
 export default async function DashboardPage() {
   const user = await getAuthenticatedUser();
@@ -10,6 +16,39 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/login");
   }
+
+  let snapshot;
+
+  try {
+    snapshot = await getOnboardingSnapshot(user.id);
+  } catch {
+    throw new Error("Unable to load dashboard profile data.");
+  }
+
+  if (!snapshot.isComplete || !snapshot.profile) {
+    redirect("/onboarding");
+  }
+
+  const supabase = await createClient();
+  const [coursesResult, skillsResult] = await Promise.all([
+    supabase
+      .from("courses")
+      .select("id, course_code, course_name")
+      .in("id", snapshot.courseIds)
+      .order("course_code"),
+    supabase
+      .from("skills")
+      .select("id, name")
+      .in("id", snapshot.skillIds)
+      .order("name"),
+  ]);
+
+  if (coursesResult.error || skillsResult.error) {
+    throw new Error("Unable to load dashboard selections.");
+  }
+
+  const courses = coursesResult.data as CourseOption[];
+  const skills = skillsResult.data as SkillOption[];
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
@@ -31,19 +70,52 @@ export default async function DashboardPage() {
           </form>
         </header>
 
-        <section className="py-16 sm:py-24">
+        <section className="py-12 sm:py-16">
           <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
             Dashboard
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl dark:text-white">
-            Welcome to Project Partner
+            Welcome, {snapshot.profile.full_name}
           </h1>
-          <p className="mt-4 text-base text-zinc-600 dark:text-zinc-400">
-            Signed in as{" "}
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">
-              {user.email}
-            </span>
+          <p className="mt-3 text-base text-zinc-600 dark:text-zinc-400">
+            {snapshot.profile.department} · {user.email}
           </p>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                Current courses
+              </h2>
+              <ul className="mt-4 space-y-3">
+                {courses.map((course) => (
+                  <li key={course.id} className="text-sm">
+                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                      {course.course_code}
+                    </span>
+                    <span className="mt-0.5 block text-zinc-500 dark:text-zinc-400">
+                      {course.course_name}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                Skills
+              </h2>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {skills.map((skill) => (
+                  <li
+                    key={skill.id}
+                    className="rounded-full bg-zinc-100 px-3 py-1.5 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                  >
+                    {skill.name}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
         </section>
       </div>
     </main>

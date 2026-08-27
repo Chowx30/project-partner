@@ -2,6 +2,7 @@ import { isNsuEmail, normalizeEmail } from "@/src/lib/auth/validation";
 import { createClient } from "@/src/lib/supabase/server";
 
 export type AuthenticatedUser = {
+  id: string;
   email: string;
 };
 
@@ -15,8 +16,11 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
 
   const claims = data.claims as Record<string, unknown>;
   const email = claims.email;
+  const id = claims.sub;
 
   if (
+    typeof id !== "string" ||
+    id.length === 0 ||
     typeof email !== "string" ||
     claims.is_anonymous !== false ||
     !isNsuEmail(email)
@@ -24,5 +28,5 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     return null;
   }
 
-  return { email: normalizeEmail(email) };
+  return { id, email: normalizeEmail(email) };
 }
