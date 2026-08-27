@@ -86,8 +86,13 @@ function CurrentProjectCard({
 export default async function DashboardPage() {
   const { user, profile } = await requireCompletedProfile();
   const supabase = await createClient();
-  const [userCoursesResult, userSkillsResult, ownedProjectsResult, membershipsResult] =
-    await Promise.all([
+  const [
+    userCoursesResult,
+    userSkillsResult,
+    ownedProjectsResult,
+    membershipsResult,
+    unreadNotificationsResult,
+  ] = await Promise.all([
       supabase.from("user_courses").select("course_id").eq("user_id", user.id),
       supabase.from("user_skills").select("skill_id").eq("user_id", user.id),
       supabase
@@ -102,18 +107,25 @@ export default async function DashboardPage() {
         .from("project_members")
         .select("project_id")
         .eq("user_id", user.id),
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .is("read_at", null),
     ]);
 
   if (
     userCoursesResult.error ||
     userSkillsResult.error ||
     ownedProjectsResult.error ||
-    membershipsResult.error
+    membershipsResult.error ||
+    unreadNotificationsResult.error
   ) {
     throw new Error("Unable to load dashboard data.");
   }
 
   const ownedProjects = ownedProjectsResult.data as CurrentProject[];
+  const unreadNotificationCount = unreadNotificationsResult.count ?? 0;
   const ownedProjectIds = new Set(ownedProjects.map((project) => project.id));
   const joinedProjectIds = [
     ...new Set(
@@ -277,6 +289,12 @@ export default async function DashboardPage() {
               className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               My Applications
+            </Link>
+            <Link
+              href="/notifications"
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              Notifications ({unreadNotificationCount})
             </Link>
           </div>
 
