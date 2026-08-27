@@ -18,3 +18,15 @@ export type ManageApplicationFormState = {
 export const initialManageApplicationFormState: ManageApplicationFormState = {
   status: "idle",
 };
+
+export const COMMENT_MAX_LENGTH = 2000;
+
+export type CommentFormState = {
+  status: "idle" | "error" | "success";
+  message?: string;
+  fieldError?: string;
+};
+
+export const initialCommentFormState: CommentFormState = {
+  status: "idle",
+};

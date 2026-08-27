@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import { ApplicantActions } from "@/app/projects/[id]/applicant-actions";
 import { ApplicationForm } from "@/app/projects/[id]/application-form";
+import { CommentControls } from "@/app/projects/[id]/comment-controls";
+import { CommentForm } from "@/app/projects/[id]/comment-form";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
 import { ProjectsHeader } from "@/app/projects/projects-header";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
@@ -63,12 +65,32 @@ type TeamMemberDetails = TeamMemberRow & {
   skills: string[];
 };
 
+type CommentRow = {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type CommentDetails = CommentRow & {
+  author: ApplicantProfile;
+};
+
 const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   pending: "Pending",
   accepted: "Accepted",
   rejected: "Rejected",
   withdrawn: "Withdrawn",
 };
+
+function wasCommentEdited(comment: CommentRow) {
+  return (
+    new Date(comment.updated_at).getTime() -
+      new Date(comment.created_at).getTime() >
+    1000
+  );
+}
 
 export default async function ProjectDetailPage({
   params,
@@ -101,8 +123,13 @@ export default async function ProjectDetailPage({
 
   const project = projectResult.data as ProjectDetail;
   const isOwner = project.owner_id === user.id;
-  const [courseResult, ownerResult, teamMembershipsResult, applicationResult] =
-    await Promise.all([
+  const [
+    courseResult,
+    ownerResult,
+    teamMembershipsResult,
+    applicationResult,
+    commentsResult,
+  ] = await Promise.all([
       supabase
         .from("courses")
         .select("id, course_code, course_name")
@@ -124,13 +151,19 @@ export default async function ProjectDetailPage({
         .eq("project_id", project.id)
         .eq("applicant_id", user.id)
         .maybeSingle(),
+      supabase
+        .from("comments")
+        .select("id, user_id, content, created_at, updated_at")
+        .eq("project_id", project.id)
+        .order("created_at", { ascending: true }),
     ]);
 
   if (
     courseResult.error ||
     ownerResult.error ||
     teamMembershipsResult.error ||
-    applicationResult.error
+    applicationResult.error ||
+    commentsResult.error
   ) {
     throw new Error("Unable to load partner post details.");
   }
@@ -153,8 +186,41 @@ export default async function ProjectDetailPage({
   const statusLabel =
     project.status.charAt(0).toUpperCase() + project.status.slice(1);
   const acceptedMemberCount = teamMembershipRows.length;
+  const commentRows = commentsResult.data as CommentRow[];
   let teamMembers: TeamMemberDetails[] = [];
   let applicants: ApplicantDetails[] = [];
+  let comments: CommentDetails[] = [];
+
+  if (commentRows.length > 0) {
+    const commentAuthorIds = [
+      ...new Set(commentRows.map((comment) => comment.user_id)),
+    ];
+    const commentAuthorsResult = await supabase
+      .from("profiles")
+      .select("id, full_name, department, graduation_year")
+      .in("id", commentAuthorIds);
+
+    if (commentAuthorsResult.error) {
+      throw new Error("Unable to load comment authors.");
+    }
+
+    const commentAuthorById = new Map(
+      (commentAuthorsResult.data as ApplicantProfile[]).map((author) => [
+        author.id,
+        author,
+      ]),
+    );
+
+    comments = commentRows.map((comment) => {
+      const author = commentAuthorById.get(comment.user_id);
+
+      if (!author) {
+        throw new Error("Unable to load a comment author.");
+      }
+
+      return { ...comment, author };
+    });
+  }
 
   if (teamMembershipRows.length > 0) {
     const teamMemberIds = teamMembershipRows.map(
@@ -572,6 +638,69 @@ export default async function ProjectDetailPage({
               )}
             </section>
           )}
+
+          <section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Discussion
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-zinc-950 dark:text-white">
+                Comments
+              </h2>
+            </div>
+
+            {comments.length === 0 ? (
+              <p className="mt-5 text-sm text-zinc-600 dark:text-zinc-400">
+                No comments yet. Start the discussion.
+              </p>
+            ) : (
+              <ul className="mt-5 space-y-4">
+                {comments.map((comment) => (
+                  <li
+                    key={comment.id}
+                    className="rounded-xl border border-zinc-200 p-4 sm:p-5 dark:border-zinc-800"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="font-semibold text-zinc-950 dark:text-white">
+                          {comment.author.full_name}
+                        </h3>
+                        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                          {comment.author.department}
+                          {comment.author.graduation_year
+                            ? ` · Graduating ${comment.author.graduation_year}`
+                            : ""}
+                        </p>
+                      </div>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {formatProjectDate(comment.created_at)}
+                        {wasCommentEdited(comment) ? " · Edited" : ""}
+                      </p>
+                    </div>
+
+                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+                      {comment.content}
+                    </p>
+
+                    {comment.user_id === user.id && (
+                      <CommentControls
+                        commentId={comment.id}
+                        content={comment.content}
+                      />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {project.status === "open" || project.status === "closed" ? (
+              <CommentForm projectId={project.id} />
+            ) : (
+              <p className="mt-6 border-t border-zinc-200 pt-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+                Comments are closed for this project.
+              </p>
+            )}
+          </section>
         </article>
       </div>
     </main>

@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import {
   APPLICATION_MESSAGE_MAX_LENGTH,
   type ApplicationFormState,
+  COMMENT_MAX_LENGTH,
+  type CommentFormState,
   type ManageApplicationFormState,
 } from "@/app/projects/[id]/form-state";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
@@ -87,6 +89,166 @@ function rejectRpcErrorState(message: string): ManageApplicationFormState {
     default:
       return manageError("Could not reject this application. Please try again.");
   }
+}
+
+function commentError(message: string): CommentFormState {
+  return { status: "error", message };
+}
+
+function commentContentError(): CommentFormState {
+  return {
+    status: "error",
+    fieldError: `Comment must be between 1 and ${COMMENT_MAX_LENGTH} characters.`,
+  };
+}
+
+function createCommentRpcErrorState(message: string): CommentFormState {
+  switch (message) {
+    case "authentication_required":
+      return commentError("Please log in again.");
+    case "ineligible_account":
+      return commentError("Only eligible NSU student accounts can comment.");
+    case "onboarding_required":
+      return commentError("Please complete onboarding before commenting.");
+    case "invalid_comment_content":
+      return commentContentError();
+    case "project_not_found":
+      return commentError("This project could not be found.");
+    case "project_comments_closed":
+      return commentError("Comments are closed for this project.");
+    default:
+      return commentError("Could not post your comment. Please try again.");
+  }
+}
+
+function validatedCommentContent(formData: FormData) {
+  const rawContent = formData.get("content");
+  const content = typeof rawContent === "string" ? rawContent.trim() : "";
+  const contentLength = Array.from(content).length;
+
+  if (contentLength < 1 || contentLength > COMMENT_MAX_LENGTH) {
+    return null;
+  }
+
+  return content;
+}
+
+export async function createProjectCommentAction(
+  projectId: string,
+  _previousState: CommentFormState,
+  formData: FormData,
+): Promise<CommentFormState> {
+  void _previousState;
+
+  await requireCompletedProfile();
+
+  if (!isUuid(projectId)) {
+    return commentError("This project could not be found.");
+  }
+
+  const content = validatedCommentContent(formData);
+
+  if (!content) {
+    return commentContentError();
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("create_project_comment", {
+    p_project_id: projectId,
+    p_content: content,
+  });
+
+  if (error) {
+    return createCommentRpcErrorState(error.message);
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/dashboard");
+
+  return { status: "success", message: "Comment posted." };
+}
+
+export async function editProjectCommentAction(
+  commentId: string,
+  _previousState: CommentFormState,
+  formData: FormData,
+): Promise<CommentFormState> {
+  void _previousState;
+
+  const { user } = await requireCompletedProfile();
+
+  if (!isUuid(commentId)) {
+    return commentError("Could not update this comment.");
+  }
+
+  const content = validatedCommentContent(formData);
+
+  if (!content) {
+    return commentContentError();
+  }
+
+  const supabase = await createClient();
+  const commentResult = await supabase
+    .from("comments")
+    .update({ content })
+    .eq("id", commentId)
+    .eq("user_id", user.id)
+    .select("project_id")
+    .maybeSingle();
+
+  if (commentResult.error) {
+    return commentError("Could not update this comment.");
+  }
+
+  if (
+    !commentResult.data ||
+    !isUuid(commentResult.data.project_id)
+  ) {
+    return commentError("Could not update this comment.");
+  }
+
+  revalidatePath(`/projects/${commentResult.data.project_id}`);
+
+  return { status: "success", message: "Comment updated." };
+}
+
+export async function deleteProjectCommentAction(
+  commentId: string,
+  _previousState: CommentFormState,
+  _formData: FormData,
+): Promise<CommentFormState> {
+  void _previousState;
+  void _formData;
+
+  const { user } = await requireCompletedProfile();
+
+  if (!isUuid(commentId)) {
+    return commentError("Could not delete this comment.");
+  }
+
+  const supabase = await createClient();
+  const commentResult = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId)
+    .eq("user_id", user.id)
+    .select("project_id")
+    .maybeSingle();
+
+  if (commentResult.error) {
+    return commentError("Could not delete this comment.");
+  }
+
+  if (
+    !commentResult.data ||
+    !isUuid(commentResult.data.project_id)
+  ) {
+    return commentError("Could not delete this comment.");
+  }
+
+  revalidatePath(`/projects/${commentResult.data.project_id}`);
+
+  return { status: "success", message: "Comment deleted." };
 }
 
 export async function submitProjectApplicationAction(
