@@ -462,7 +462,12 @@ export default async function ProjectDetailPage({
               Posted by
             </p>
             <h2 className="mt-2 text-lg font-semibold text-zinc-950 dark:text-white">
-              {owner.full_name}
+              <Link
+                href={`/profile/${project.owner_id}`}
+                className="hover:underline hover:underline-offset-4"
+              >
+                {owner.full_name}
+              </Link>
             </h2>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               {owner.department}
@@ -493,7 +498,12 @@ export default async function ProjectDetailPage({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="font-semibold text-zinc-950 dark:text-white">
-                      {owner.full_name}
+                      <Link
+                        href={`/profile/${project.owner_id}`}
+                        className="hover:underline hover:underline-offset-4"
+                      >
+                        {owner.full_name}
+                      </Link>
                     </h3>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                       {owner.department}
@@ -516,7 +526,12 @@ export default async function ProjectDetailPage({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h3 className="font-semibold text-zinc-950 dark:text-white">
-                        {member.profile.full_name}
+                        <Link
+                          href={`/profile/${member.user_id}`}
+                          className="hover:underline hover:underline-offset-4"
+                        >
+                          {member.profile.full_name}
+                        </Link>
                       </h3>
                       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                         {member.profile.department}
@@ -615,7 +630,12 @@ export default async function ProjectDetailPage({
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <h3 className="font-semibold text-zinc-950 dark:text-white">
-                            {application.profile.full_name}
+                            <Link
+                              href={`/profile/${application.applicant_id}`}
+                              className="hover:underline hover:underline-offset-4"
+                            >
+                              {application.profile.full_name}
+                            </Link>
                           </h3>
                           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                             {application.profile.department}
@@ -700,7 +720,12 @@ export default async function ProjectDetailPage({
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <h3 className="font-semibold text-zinc-950 dark:text-white">
-                          {comment.author.full_name}
+                          <Link
+                            href={`/profile/${comment.user_id}`}
+                            className="hover:underline hover:underline-offset-4"
+                          >
+                            {comment.author.full_name}
+                          </Link>
                         </h3>
                         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                           {comment.author.department}

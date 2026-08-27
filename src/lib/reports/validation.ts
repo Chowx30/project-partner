@@ -10,6 +10,17 @@ export const REPORT_REASON_OPTIONS = [
 
 export type ReportReason = (typeof REPORT_REASON_OPTIONS)[number]["value"];
 
+export type ReportFormState = {
+  status: "idle" | "error" | "success";
+  message?: string;
+  reasonError?: string;
+  detailsError?: string;
+};
+
+export const initialReportFormState: ReportFormState = {
+  status: "idle",
+};
+
 type ValidReportInput = {
   valid: true;
   reason: ReportReason;

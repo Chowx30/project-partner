@@ -8,11 +8,13 @@ import {
   COMMENT_MAX_LENGTH,
   type CommentFormState,
   type ManageApplicationFormState,
-  type ReportFormState,
 } from "@/app/projects/[id]/form-state";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import { isUuid } from "@/src/lib/profile/validation";
-import { validateReportInput } from "@/src/lib/reports/validation";
+import {
+  type ReportFormState,
+  validateReportInput,
+} from "@/src/lib/reports/validation";
 import { createClient } from "@/src/lib/supabase/server";
 
 function formError(message: string): ApplicationFormState {

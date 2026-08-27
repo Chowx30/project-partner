@@ -30,14 +30,3 @@ export type CommentFormState = {
 export const initialCommentFormState: CommentFormState = {
   status: "idle",
 };
-
-export type ReportFormState = {
-  status: "idle" | "error" | "success";
-  message?: string;
-  reasonError?: string;
-  detailsError?: string;
-};
-
-export const initialReportFormState: ReportFormState = {
-  status: "idle",
-};
