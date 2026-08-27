@@ -2,7 +2,7 @@ create function public.complete_onboarding(
   p_full_name pg_catalog.text,
   p_department pg_catalog.text,
   p_student_id pg_catalog.text,
-  p_graduation_year pg_catalog.integer,
+  p_graduation_year pg_catalog.int4,
   p_bio pg_catalog.text,
   p_course_ids pg_catalog.uuid[],
   p_skill_ids pg_catalog.uuid[]
@@ -21,7 +21,7 @@ declare
   v_bio pg_catalog.text;
   v_existing_student_id pg_catalog.text;
   v_verified_at pg_catalog.timestamptz;
-  v_has_verification pg_catalog.boolean;
+  v_has_verification pg_catalog.bool;
 begin
   v_user_id := auth.uid();
 
@@ -32,14 +32,14 @@ begin
   end if;
 
   v_email := pg_catalog.lower(
-    pg_catalog.coalesce(auth.jwt() ->> 'email', '')
+    coalesce(auth.jwt() ->> 'email', '')
   );
 
   if pg_catalog.right(
     v_email,
     pg_catalog.char_length('@northsouth.edu')
   ) <> '@northsouth.edu'
-  or pg_catalog.coalesce(
+  or coalesce(
     (auth.jwt() ->> 'is_anonymous') <> 'false',
     true
   ) then
@@ -292,7 +292,7 @@ comment on function public.complete_onboarding(
   pg_catalog.text,
   pg_catalog.text,
   pg_catalog.text,
-  pg_catalog.integer,
+  pg_catalog.int4,
   pg_catalog.text,
   pg_catalog.uuid[],
   pg_catalog.uuid[]
@@ -303,7 +303,7 @@ revoke execute on function public.complete_onboarding(
   pg_catalog.text,
   pg_catalog.text,
   pg_catalog.text,
-  pg_catalog.integer,
+  pg_catalog.int4,
   pg_catalog.text,
   pg_catalog.uuid[],
   pg_catalog.uuid[]
@@ -313,7 +313,7 @@ revoke execute on function public.complete_onboarding(
   pg_catalog.text,
   pg_catalog.text,
   pg_catalog.text,
-  pg_catalog.integer,
+  pg_catalog.int4,
   pg_catalog.text,
   pg_catalog.uuid[],
   pg_catalog.uuid[]
@@ -323,7 +323,7 @@ grant execute on function public.complete_onboarding(
   pg_catalog.text,
   pg_catalog.text,
   pg_catalog.text,
-  pg_catalog.integer,
+  pg_catalog.int4,
   pg_catalog.text,
   pg_catalog.uuid[],
   pg_catalog.uuid[]
