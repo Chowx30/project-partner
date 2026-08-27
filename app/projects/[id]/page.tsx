@@ -53,6 +53,16 @@ type ApplicantDetails = OwnerApplication & {
   skills: string[];
 };
 
+type TeamMemberRow = {
+  user_id: string;
+  joined_at: string;
+};
+
+type TeamMemberDetails = TeamMemberRow & {
+  profile: ApplicantProfile;
+  skills: string[];
+};
+
 const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   pending: "Pending",
   accepted: "Accepted",
@@ -91,7 +101,7 @@ export default async function ProjectDetailPage({
 
   const project = projectResult.data as ProjectDetail;
   const isOwner = project.owner_id === user.id;
-  const [courseResult, ownerResult, membershipResult, applicationResult] =
+  const [courseResult, ownerResult, teamMembershipsResult, applicationResult] =
     await Promise.all([
       supabase
         .from("courses")
@@ -105,10 +115,9 @@ export default async function ProjectDetailPage({
         .maybeSingle(),
       supabase
         .from("project_members")
-        .select("project_id")
+        .select("user_id, joined_at")
         .eq("project_id", project.id)
-        .eq("user_id", user.id)
-        .maybeSingle(),
+        .order("joined_at", { ascending: true }),
       supabase
         .from("applications")
         .select("status")
@@ -120,7 +129,7 @@ export default async function ProjectDetailPage({
   if (
     courseResult.error ||
     ownerResult.error ||
-    membershipResult.error ||
+    teamMembershipsResult.error ||
     applicationResult.error
   ) {
     throw new Error("Unable to load partner post details.");
@@ -132,34 +141,96 @@ export default async function ProjectDetailPage({
 
   const course = courseResult.data as CourseOption;
   const owner = ownerResult.data as OwnerProfile;
-  const isProjectMember = Boolean(membershipResult.data);
+  const teamMembershipRows = (
+    teamMembershipsResult.data as TeamMemberRow[]
+  ).filter((membership) => membership.user_id !== project.owner_id);
+  const isProjectMember = teamMembershipRows.some(
+    (membership) => membership.user_id === user.id,
+  );
   const applicationStatus = applicationResult.data?.status as
     | ApplicationStatus
     | undefined;
   const statusLabel =
     project.status.charAt(0).toUpperCase() + project.status.slice(1);
-  let acceptedMemberCount = 0;
+  const acceptedMemberCount = teamMembershipRows.length;
+  let teamMembers: TeamMemberDetails[] = [];
   let applicants: ApplicantDetails[] = [];
 
-  if (isOwner) {
-    const [applicationsResult, memberCountResult] = await Promise.all([
+  if (teamMembershipRows.length > 0) {
+    const teamMemberIds = teamMembershipRows.map(
+      (membership) => membership.user_id,
+    );
+    const [teamProfilesResult, teamSkillsResult] = await Promise.all([
       supabase
-        .from("applications")
-        .select("id, applicant_id, message, status, created_at")
-        .eq("project_id", project.id)
-        .order("created_at", { ascending: false }),
+        .from("profiles")
+        .select("id, full_name, department, graduation_year")
+        .in("id", teamMemberIds),
       supabase
-        .from("project_members")
-        .select("user_id", { count: "exact", head: true })
-        .eq("project_id", project.id)
-        .neq("user_id", project.owner_id),
+        .from("user_skills")
+        .select("user_id, skill_id")
+        .in("user_id", teamMemberIds),
     ]);
 
-    if (applicationsResult.error || memberCountResult.error) {
+    if (teamProfilesResult.error || teamSkillsResult.error) {
+      throw new Error("Unable to load project team.");
+    }
+
+    const teamProfiles = teamProfilesResult.data as ApplicantProfile[];
+    const teamProfileById = new Map(
+      teamProfiles.map((profile) => [profile.id, profile]),
+    );
+    const teamSkillRows = teamSkillsResult.data as {
+      user_id: string;
+      skill_id: string;
+    }[];
+    const teamSkillIds = [
+      ...new Set(teamSkillRows.map((row) => row.skill_id)),
+    ];
+    const teamSkillNameById = new Map<string, string>();
+
+    if (teamSkillIds.length > 0) {
+      const teamSkillCatalogResult = await supabase
+        .from("skills")
+        .select("id, name")
+        .in("id", teamSkillIds)
+        .order("name");
+
+      if (teamSkillCatalogResult.error) {
+        throw new Error("Unable to load project team skills.");
+      }
+
+      for (const skill of teamSkillCatalogResult.data) {
+        teamSkillNameById.set(skill.id, skill.name);
+      }
+    }
+
+    teamMembers = teamMembershipRows.map((membership) => {
+      const profile = teamProfileById.get(membership.user_id);
+
+      if (!profile) {
+        throw new Error("Unable to load a team member.");
+      }
+
+      const skills = teamSkillRows
+        .filter((row) => row.user_id === membership.user_id)
+        .map((row) => teamSkillNameById.get(row.skill_id))
+        .filter((name): name is string => Boolean(name));
+
+      return { ...membership, profile, skills };
+    });
+  }
+
+  if (isOwner) {
+    const applicationsResult = await supabase
+      .from("applications")
+      .select("id, applicant_id, message, status, created_at")
+      .eq("project_id", project.id)
+      .order("created_at", { ascending: false });
+
+    if (applicationsResult.error) {
       throw new Error("Unable to load project applications.");
     }
 
-    acceptedMemberCount = memberCountResult.count ?? 0;
     const applicationRows = applicationsResult.data as OwnerApplication[];
     const orderedApplications = [
       ...applicationRows.filter((row) => row.status === "pending"),
@@ -296,6 +367,81 @@ export default async function ProjectDetailPage({
                 ? ` · Graduating ${owner.graduation_year}`
                 : ""}
             </p>
+          </section>
+
+          <section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Current team
+                </p>
+                <h2 className="mt-2 text-lg font-semibold text-zinc-950 dark:text-white">
+                  Team
+                </h2>
+              </div>
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Accepted members: {acceptedMemberCount} /{" "}
+                {project.members_needed}
+              </p>
+            </div>
+
+            <ul className="mt-5 space-y-3">
+              <li className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-zinc-950 dark:text-white">
+                      {owner.full_name}
+                    </h3>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                      {owner.department}
+                      {owner.graduation_year
+                        ? ` · Graduating ${owner.graduation_year}`
+                        : ""}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                    Owner
+                  </span>
+                </div>
+              </li>
+
+              {teamMembers.map((member) => (
+                <li
+                  key={member.user_id}
+                  className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold text-zinc-950 dark:text-white">
+                        {member.profile.full_name}
+                      </h3>
+                      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        {member.profile.department}
+                        {member.profile.graduation_year
+                          ? ` · Graduating ${member.profile.graduation_year}`
+                          : ""}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                      Member
+                    </span>
+                  </div>
+
+                  {member.skills.length > 0 && (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {member.skills.map((skill) => (
+                        <li
+                          key={skill}
+                          className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                        >
+                          {skill}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
           </section>
 
           {!isOwner && (
