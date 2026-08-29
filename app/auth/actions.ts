@@ -8,9 +8,8 @@ import {
   normalizeEmail,
   NSU_EMAIL_MESSAGE,
 } from "@/src/lib/auth/validation";
+import { getAppOrigin } from "@/src/lib/app-origin";
 import { createClient } from "@/src/lib/supabase/server";
-
-const LOCAL_CONFIRM_URL = "http://localhost:3000/auth/confirm";
 
 function readFormValue(formData: FormData, name: string) {
   const value = formData.get(name);
@@ -42,12 +41,16 @@ export async function signUpAction(
     return { status: "error", errors };
   }
 
+  const confirmationRedirectUrl = new URL(
+    "/auth/confirm",
+    getAppOrigin(),
+  ).toString();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: LOCAL_CONFIRM_URL,
+      emailRedirectTo: confirmationRedirectUrl,
     },
   });
 
