@@ -14,6 +14,21 @@ function reportError(message: string): ReportFormState {
   return { status: "error", message };
 }
 
+function reportUserRpcErrorState(message: string): ReportFormState {
+  switch (message) {
+    case "rate_limit_exceeded":
+      return reportError("Too many requests. Please try again later.");
+    case "report_already_exists":
+      return reportError("You have already reported this user.");
+    case "cannot_report_own_target":
+      return reportError("You cannot report yourself.");
+    case "invalid_report_target":
+      return reportError("This user could not be found.");
+    default:
+      return reportError("Could not submit this report. Please try again.");
+  }
+}
+
 export async function reportUserAction(
   targetUserId: string,
   _previousState: ReportFormState,
@@ -52,23 +67,15 @@ export async function reportUserAction(
     return reportError("You cannot report yourself.");
   }
 
-  const { error } = await supabase.from("reports").insert({
-    reporter_id: user.id,
-    target_user_id: targetUserId,
-    reason: validation.reason,
-    details: validation.details,
+  const { error } = await supabase.rpc("submit_report", {
+    p_target_type: "user",
+    p_target_id: targetUserId,
+    p_reason: validation.reason,
+    p_details: validation.details,
   });
 
   if (error) {
-    if (error.code === "23505") {
-      return reportError("You have already reported this user.");
-    }
-
-    if (error.code === "23503") {
-      return reportError("This user could not be found.");
-    }
-
-    return reportError("Could not submit this report. Please try again.");
+    return reportUserRpcErrorState(error.message);
   }
 
   revalidatePath(`/profile/${targetUserId}`);

@@ -26,11 +26,30 @@ function formError(message: string): CreateProjectFormState {
   return { status: "error", message };
 }
 
+function createProjectRpcErrorState(message: string): CreateProjectFormState {
+  if (message === "rate_limit_exceeded") {
+    return formError("Too many requests. Please try again later.");
+  }
+
+  return formError("We could not create your post. Please try again.");
+}
+
+function getCreatedProjectId(data: unknown) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return null;
+  }
+
+  const projectId = (data as { project_id?: unknown }).project_id;
+  return typeof projectId === "string" && isUuid(projectId)
+    ? projectId
+    : null;
+}
+
 export async function createProjectAction(
   _previousState: CreateProjectFormState,
   formData: FormData,
 ): Promise<CreateProjectFormState> {
-  const { user } = await requireCompletedProfile();
+  await requireCompletedProfile();
   const postType = readFormValue(formData, "postType").trim();
   const courseId = readFormValue(formData, "courseId").trim();
   const title = readFormValue(formData, "title").trim();
@@ -92,26 +111,23 @@ export async function createProjectAction(
     };
   }
 
-  const projectResult = await supabase
-    .from("projects")
-    .insert({
-      owner_id: user.id,
-      course_id: courseId,
-      title,
-      short_description: description,
-      members_needed: membersNeeded,
-      post_type: postType,
-    })
-    .select("id")
-    .single();
+  const projectResult = await supabase.rpc("create_project", {
+    p_course_id: courseId,
+    p_title: title,
+    p_short_description: description,
+    p_members_needed: membersNeeded,
+    p_post_type: postType,
+  });
 
-  if (
-    projectResult.error ||
-    typeof projectResult.data?.id !== "string" ||
-    !isUuid(projectResult.data.id)
-  ) {
+  if (projectResult.error) {
+    return createProjectRpcErrorState(projectResult.error.message);
+  }
+
+  const projectId = getCreatedProjectId(projectResult.data);
+
+  if (!projectId) {
     return formError("We could not create your post. Please try again.");
   }
 
-  redirect(`/projects/${projectResult.data.id}`);
+  redirect(`/projects/${projectId}`);
 }

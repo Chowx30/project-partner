@@ -46,6 +46,8 @@ function rpcErrorState(message: string): ApplicationFormState {
       return formError("You have already applied to this project.");
     case "project_full":
       return formError("This project has already filled its available spots.");
+    case "rate_limit_exceeded":
+      return formError("Too many requests. Please try again later.");
     default:
       return formError("Could not submit your application. Please try again.");
   }
@@ -120,6 +122,8 @@ function createCommentRpcErrorState(message: string): CommentFormState {
       return commentError("This project could not be found.");
     case "project_comments_closed":
       return commentError("Comments are closed for this project.");
+    case "rate_limit_exceeded":
+      return commentError("Too many requests. Please try again later.");
     default:
       return commentError("Could not post your comment. Please try again.");
   }
@@ -151,8 +155,27 @@ function reportValidationError(
   };
 }
 
-function isDuplicateReportError(error: { code?: string }) {
-  return error.code === "23505";
+function reportRpcErrorState(
+  message: string,
+  targetType: "project" | "comment",
+): ReportFormState {
+  if (message === "rate_limit_exceeded") {
+    return reportError("Too many requests. Please try again later.");
+  }
+
+  if (message === "report_already_exists") {
+    return reportError(`You have already reported this ${targetType}.`);
+  }
+
+  if (message === "cannot_report_own_target") {
+    return reportError(`You cannot report your own ${targetType}.`);
+  }
+
+  if (message === "invalid_report_target") {
+    return reportError(`This ${targetType} could not be found.`);
+  }
+
+  return reportError("Could not submit this report. Please try again.");
 }
 
 export async function reportProjectAction(
@@ -189,23 +212,15 @@ export async function reportProjectAction(
     return reportError("You cannot report your own project.");
   }
 
-  const { error } = await supabase.from("reports").insert({
-    reporter_id: user.id,
-    target_project_id: projectId,
-    reason: validation.reason,
-    details: validation.details,
+  const { error } = await supabase.rpc("submit_report", {
+    p_target_type: "project",
+    p_target_id: projectId,
+    p_reason: validation.reason,
+    p_details: validation.details,
   });
 
   if (error) {
-    if (isDuplicateReportError(error)) {
-      return reportError("You have already reported this project.");
-    }
-
-    if (error.code === "23503") {
-      return reportError("This project could not be found.");
-    }
-
-    return reportError("Could not submit this report. Please try again.");
+    return reportRpcErrorState(error.message, "project");
   }
 
   revalidatePath(`/projects/${projectId}`);
@@ -247,23 +262,15 @@ export async function reportProjectCommentAction(
     return reportError("You cannot report your own comment.");
   }
 
-  const { error } = await supabase.from("reports").insert({
-    reporter_id: user.id,
-    target_comment_id: commentId,
-    reason: validation.reason,
-    details: validation.details,
+  const { error } = await supabase.rpc("submit_report", {
+    p_target_type: "comment",
+    p_target_id: commentId,
+    p_reason: validation.reason,
+    p_details: validation.details,
   });
 
   if (error) {
-    if (isDuplicateReportError(error)) {
-      return reportError("You have already reported this comment.");
-    }
-
-    if (error.code === "23503") {
-      return reportError("This comment could not be found.");
-    }
-
-    return reportError("Could not submit this report. Please try again.");
+    return reportRpcErrorState(error.message, "comment");
   }
 
   revalidatePath(`/projects/${commentResult.data.project_id}`);
