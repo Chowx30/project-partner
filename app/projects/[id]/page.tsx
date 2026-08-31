@@ -8,6 +8,13 @@ import { CommentForm } from "@/app/projects/[id]/comment-form";
 import { ReportControls } from "@/app/projects/[id]/report-controls";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
 import { ProjectsHeader } from "@/app/projects/projects-header";
+import { PaginationNav } from "@/src/components/pagination-nav";
+import {
+  COMMENTS_PAGE_SIZE,
+  getPageOffset,
+  parsePage,
+  slicePageResults,
+} from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption, ProfileRecord } from "@/src/lib/profile/data";
 import { isUuid } from "@/src/lib/profile/validation";
@@ -78,6 +85,8 @@ type CommentDetails = CommentRow & {
   author: ApplicantProfile;
 };
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   pending: "Pending",
   accepted: "Accepted",
@@ -95,11 +104,16 @@ function wasCommentEdited(comment: CommentRow) {
 
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const { user } = await requireCompletedProfile();
   const { id } = await params;
+  const queryParams = await searchParams;
+  const commentsPage = parsePage(queryParams.commentsPage);
+  const commentsOffset = getPageOffset(commentsPage, COMMENTS_PAGE_SIZE);
 
   if (!isUuid(id)) {
     notFound();
@@ -157,7 +171,9 @@ export default async function ProjectDetailPage({
         .from("comments")
         .select("id, user_id, content, created_at, updated_at")
         .eq("project_id", project.id)
-        .order("created_at", { ascending: true }),
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(commentsOffset, commentsOffset + COMMENTS_PAGE_SIZE),
       supabase
         .from("reports")
         .select("id")
@@ -195,7 +211,12 @@ export default async function ProjectDetailPage({
   const statusLabel =
     project.status.charAt(0).toUpperCase() + project.status.slice(1);
   const acceptedMemberCount = teamMembershipRows.length;
-  const commentRows = commentsResult.data as CommentRow[];
+  const { items: newestFirstCommentRows, hasNext: hasOlderComments } =
+    slicePageResults(
+      commentsResult.data as CommentRow[],
+      COMMENTS_PAGE_SIZE,
+    );
+  const commentRows = [...newestFirstCommentRows].reverse();
   const projectAlreadyReported = Boolean(projectReportResult.data);
   const reportedCommentIds = new Set<string>();
   let teamMembers: TeamMemberDetails[] = [];
@@ -761,6 +782,18 @@ export default async function ProjectDetailPage({
                   </li>
                 ))}
               </ul>
+            )}
+
+            {(commentsPage > 1 || hasOlderComments) && (
+              <PaginationNav
+                pathname={`/projects/${project.id}`}
+                currentPage={commentsPage}
+                hasNext={hasOlderComments}
+                searchParams={queryParams}
+                pageParamName="commentsPage"
+                previousLabel="Newer comments"
+                nextLabel="Older comments"
+              />
             )}
 
             {project.status === "open" || project.status === "closed" ? (

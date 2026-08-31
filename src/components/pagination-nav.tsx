@@ -12,6 +12,8 @@ type PaginationNavProps = {
   hasNext: boolean;
   searchParams?: PaginationSearchParams;
   pageParamName?: string;
+  previousLabel?: string;
+  nextLabel?: string;
 };
 
 const linkClasses =
@@ -25,6 +27,8 @@ export function PaginationNav({
   hasNext,
   searchParams = {},
   pageParamName = "page",
+  previousLabel = "Previous",
+  nextLabel = "Next",
 }: PaginationNavProps) {
   const hasPrevious = currentPage > 1;
   const canGoNext = hasNext && currentPage < MAX_PAGE_NUMBER;
@@ -44,11 +48,11 @@ export function PaginationNav({
           })}
           className={linkClasses}
         >
-          Previous
+          {previousLabel}
         </Link>
       ) : (
         <span aria-disabled="true" className={disabledClasses}>
-          Previous
+          {previousLabel}
         </span>
       )}
 
@@ -69,11 +73,11 @@ export function PaginationNav({
           })}
           className={linkClasses}
         >
-          Next
+          {nextLabel}
         </Link>
       ) : (
         <span aria-disabled="true" className={disabledClasses}>
-          Next
+          {nextLabel}
         </span>
       )}
     </nav>
