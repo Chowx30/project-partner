@@ -3,6 +3,13 @@ import Link from "next/link";
 import { WithdrawButton } from "@/app/applications/withdraw-button";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
 import { ProjectsHeader } from "@/app/projects/projects-header";
+import { PaginationNav } from "@/src/components/pagination-nav";
+import {
+  APPLICATIONS_PAGE_SIZE,
+  getPageOffset,
+  parsePage,
+  slicePageResults,
+} from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption } from "@/src/lib/profile/data";
 import {
@@ -41,6 +48,8 @@ type ApplicationDetails = ApplicationRow & {
   owner: OwnerSummary;
 };
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   pending: "Pending",
   accepted: "Accepted",
@@ -57,20 +66,32 @@ const APPLICATION_STATUS_CLASSES: Record<ApplicationStatus, string> = {
   withdrawn: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
 };
 
-export default async function ApplicationsPage() {
+export default async function ApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
   const { user } = await requireCompletedProfile();
+  const params = await searchParams;
+  const currentPage = parsePage(params.page);
+  const pageOffset = getPageOffset(currentPage, APPLICATIONS_PAGE_SIZE);
   const supabase = await createClient();
   const applicationsResult = await supabase
     .from("applications")
     .select("id, project_id, message, status, created_at")
     .eq("applicant_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(pageOffset, pageOffset + APPLICATIONS_PAGE_SIZE);
 
   if (applicationsResult.error) {
     throw new Error("Unable to load your applications.");
   }
 
-  const applications = applicationsResult.data as ApplicationRow[];
+  const { items: applications, hasNext } = slicePageResults(
+    applicationsResult.data as ApplicationRow[],
+    APPLICATIONS_PAGE_SIZE,
+  );
   let applicationDetails: ApplicationDetails[] = [];
 
   if (applications.length > 0) {
@@ -210,6 +231,16 @@ export default async function ApplicationsPage() {
                 </li>
               ))}
             </ul>
+          )}
+
+          {(currentPage > 1 || hasNext) && (
+            <PaginationNav
+              pathname="/applications"
+              currentPage={currentPage}
+              hasNext={hasNext}
+              searchParams={params}
+              pageParamName="page"
+            />
           )}
         </section>
       </div>
