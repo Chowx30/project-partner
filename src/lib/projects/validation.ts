@@ -7,7 +7,6 @@ export const PROJECT_DESCRIPTION_MAX_LENGTH = 1000;
 export const PROJECT_MEMBERS_MIN = 1;
 export const PROJECT_MEMBERS_MAX = 20;
 export const PROJECT_SEARCH_MAX_LENGTH = 100;
-export const PROJECT_BROWSE_LIMIT = 100;
 
 export function isProjectPostType(value: string): value is ProjectPostType {
   return PROJECT_POST_TYPES.includes(value as ProjectPostType);

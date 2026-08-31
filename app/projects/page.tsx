@@ -2,6 +2,13 @@ import Link from "next/link";
 
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
 import { ProjectsHeader } from "@/app/projects/projects-header";
+import { PaginationNav } from "@/src/components/pagination-nav";
+import {
+  getPageOffset,
+  parsePage,
+  PROJECTS_PAGE_SIZE,
+  slicePageResults,
+} from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption } from "@/src/lib/profile/data";
 import { isUuid } from "@/src/lib/profile/validation";
@@ -9,7 +16,6 @@ import {
   buildProjectSearchFilter,
   formatProjectDate,
   isProjectPostType,
-  PROJECT_BROWSE_LIMIT,
   PROJECT_SEARCH_MAX_LENGTH,
   type ProjectPostType,
 } from "@/src/lib/projects/validation";
@@ -45,6 +51,8 @@ export default async function ProjectsPage({
   await requireCompletedProfile();
 
   const params = await searchParams;
+  const currentPage = parsePage(params.page);
+  const pageOffset = getPageOffset(currentPage, PROJECTS_PAGE_SIZE);
   const requestedType = firstSearchParam(params.type).trim().toLowerCase();
   const typeFilter = isProjectPostType(requestedType) ? requestedType : "";
   const requestedCourse = firstSearchParam(params.course).trim();
@@ -74,7 +82,7 @@ export default async function ProjectsPage({
     )
     .eq("status", "open")
     .order("created_at", { ascending: false })
-    .limit(PROJECT_BROWSE_LIMIT);
+    .order("id", { ascending: false });
 
   if (typeFilter) {
     projectsQuery = projectsQuery.eq("post_type", typeFilter);
@@ -88,13 +96,19 @@ export default async function ProjectsPage({
     projectsQuery = projectsQuery.or(buildProjectSearchFilter(searchQuery));
   }
 
-  const projectsResult = await projectsQuery;
+  const projectsResult = await projectsQuery.range(
+    pageOffset,
+    pageOffset + PROJECTS_PAGE_SIZE,
+  );
 
   if (projectsResult.error) {
     throw new Error("Unable to load partner posts.");
   }
 
-  const projects = projectsResult.data as ProjectListRow[];
+  const { items: projects, hasNext } = slicePageResults(
+    projectsResult.data as ProjectListRow[],
+    PROJECTS_PAGE_SIZE,
+  );
   const ownerIds = [...new Set(projects.map((project) => project.owner_id))];
   const profilesResult =
     ownerIds.length > 0
@@ -278,6 +292,16 @@ export default async function ProjectsPage({
                 );
               })}
             </div>
+          )}
+
+          {(currentPage > 1 || hasNext) && (
+            <PaginationNav
+              pathname="/projects"
+              currentPage={currentPage}
+              hasNext={hasNext}
+              searchParams={params}
+              pageParamName="page"
+            />
           )}
         </div>
       </div>
