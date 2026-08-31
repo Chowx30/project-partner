@@ -5,6 +5,13 @@ import {
   MarkNotificationReadButton,
 } from "@/app/notifications/notification-actions";
 import { ProjectsHeader } from "@/app/projects/projects-header";
+import { PaginationNav } from "@/src/components/pagination-nav";
+import {
+  getPageOffset,
+  NOTIFICATIONS_PAGE_SIZE,
+  parsePage,
+  slicePageResults,
+} from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import { createClient } from "@/src/lib/supabase/server";
 
@@ -31,6 +38,8 @@ type ActorProfile = {
   department: string;
 };
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   application_received: "Application received",
   application_accepted: "Application accepted",
@@ -43,20 +52,41 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   timeStyle: "short",
 });
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
   const { user } = await requireCompletedProfile();
+  const params = await searchParams;
+  const currentPage = parsePage(params.page);
+  const pageOffset = getPageOffset(currentPage, NOTIFICATIONS_PAGE_SIZE);
   const supabase = await createClient();
-  const notificationsResult = await supabase
-    .from("notifications")
-    .select("id, actor_id, project_id, type, title, message, read_at, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  const [notificationsResult, unreadCountResult] = await Promise.all([
+    supabase
+      .from("notifications")
+      .select(
+        "id, actor_id, project_id, type, title, message, read_at, created_at",
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(pageOffset, pageOffset + NOTIFICATIONS_PAGE_SIZE),
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null),
+  ]);
 
-  if (notificationsResult.error) {
+  if (notificationsResult.error || unreadCountResult.error) {
     throw new Error("Unable to load notifications.");
   }
 
-  const notifications = notificationsResult.data as NotificationRow[];
+  const { items: notifications, hasNext } = slicePageResults(
+    notificationsResult.data as NotificationRow[],
+    NOTIFICATIONS_PAGE_SIZE,
+  );
   const actorIds = [
     ...new Set(
       notifications
@@ -79,9 +109,7 @@ export default async function NotificationsPage() {
   const actorById = new Map(
     (actorsResult.data as ActorProfile[]).map((actor) => [actor.id, actor]),
   );
-  const unreadCount = notifications.filter(
-    (notification) => notification.read_at === null,
-  ).length;
+  const unreadCount = unreadCountResult.count ?? 0;
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
@@ -197,6 +225,16 @@ export default async function NotificationsPage() {
                 );
               })}
             </ul>
+          )}
+
+          {(currentPage > 1 || hasNext) && (
+            <PaginationNav
+              pathname="/notifications"
+              currentPage={currentPage}
+              hasNext={hasNext}
+              searchParams={params}
+              pageParamName="page"
+            />
           )}
         </section>
       </div>
