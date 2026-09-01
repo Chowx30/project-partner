@@ -5,6 +5,7 @@ import { reportUserAction } from "@/app/profile/[id]/actions";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
 import { ProjectsHeader } from "@/app/projects/projects-header";
 import { ReportForm } from "@/src/components/report-form";
+import { PROFILE_PROJECT_LIMIT } from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption, SkillOption } from "@/src/lib/profile/data";
 import { isUuid } from "@/src/lib/profile/validation";
@@ -27,6 +28,11 @@ type PublicProject = {
   post_type: ProjectPostType;
   status: "open" | "closed" | "completed";
   created_at: string;
+};
+
+type JoinedMembershipRow = {
+  project_id: string;
+  joined_at: string;
 };
 
 function initials(fullName: string) {
@@ -143,11 +149,16 @@ export default async function PublicProfilePage({
         .select("id, owner_id, course_id, title, post_type, status, created_at")
         .eq("owner_id", profile.id)
         .in("status", ["open", "closed", "completed"])
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(PROFILE_PROJECT_LIMIT),
       supabase
         .from("project_members")
-        .select("project_id")
-        .eq("user_id", profile.id),
+        .select("project_id, joined_at")
+        .eq("user_id", profile.id)
+        .order("joined_at", { ascending: false })
+        .order("project_id", { ascending: false })
+        .limit(PROFILE_PROJECT_LIMIT),
       reportQuery,
     ]);
 
@@ -163,7 +174,11 @@ export default async function PublicProfilePage({
 
   const ownedProjects = ownedProjectsResult.data as PublicProject[];
   const joinedProjectIds = [
-    ...new Set(membershipsResult.data.map((row) => row.project_id)),
+    ...new Set(
+      (membershipsResult.data as JoinedMembershipRow[]).map(
+        (membership) => membership.project_id,
+      ),
+    ),
   ];
   const joinedProjectsResult =
     joinedProjectIds.length > 0
@@ -172,16 +187,25 @@ export default async function PublicProfilePage({
           .select("id, owner_id, course_id, title, post_type, status, created_at")
           .in("id", joinedProjectIds)
           .in("status", ["open", "closed", "completed"])
-          .order("created_at", { ascending: false })
+          .limit(PROFILE_PROJECT_LIMIT)
       : { data: [] as PublicProject[], error: null };
 
   if (joinedProjectsResult.error) {
     throw new Error("Unable to load joined projects.");
   }
 
-  const joinedProjects = (
-    joinedProjectsResult.data as PublicProject[]
-  ).filter((project) => project.owner_id !== profile.id);
+  const joinedProjectById = new Map(
+    (joinedProjectsResult.data as PublicProject[]).map((project) => [
+      project.id,
+      project,
+    ]),
+  );
+  const joinedProjects = joinedProjectIds
+    .map((projectId) => joinedProjectById.get(projectId))
+    .filter(
+      (project): project is PublicProject =>
+        project !== undefined && project.owner_id !== profile.id,
+    );
   const skillIds = userSkillsResult.data.map((row) => row.skill_id);
   const currentCourseIds = userCoursesResult.data.map((row) => row.course_id);
   const allCourseIds = [
