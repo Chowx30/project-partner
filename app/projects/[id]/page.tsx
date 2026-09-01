@@ -10,6 +10,8 @@ import { PostTypeBadge } from "@/app/projects/post-type-badge";
 import { ProjectsHeader } from "@/app/projects/projects-header";
 import { PaginationNav } from "@/src/components/pagination-nav";
 import {
+  APPLICANTS_PAGE_SIZE,
+  buildPaginationHref,
   COMMENTS_PAGE_SIZE,
   getPageOffset,
   parsePage,
@@ -86,6 +88,7 @@ type CommentDetails = CommentRow & {
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
+type ApplicantStatusFilter = "pending" | "history";
 
 const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   pending: "Pending",
@@ -114,6 +117,13 @@ export default async function ProjectDetailPage({
   const queryParams = await searchParams;
   const commentsPage = parsePage(queryParams.commentsPage);
   const commentsOffset = getPageOffset(commentsPage, COMMENTS_PAGE_SIZE);
+  const applicantStatus: ApplicantStatusFilter =
+    queryParams.applicantStatus === "history" ? "history" : "pending";
+  const applicantsPage = parsePage(queryParams.applicantsPage);
+  const applicantsOffset = getPageOffset(
+    applicantsPage,
+    APPLICANTS_PAGE_SIZE,
+  );
 
   if (!isUuid(id)) {
     notFound();
@@ -222,6 +232,7 @@ export default async function ProjectDetailPage({
   let teamMembers: TeamMemberDetails[] = [];
   let applicants: ApplicantDetails[] = [];
   let comments: CommentDetails[] = [];
+  let hasNextApplicants = false;
 
   if (commentRows.length > 0) {
     const commentAuthorIds = [
@@ -335,22 +346,37 @@ export default async function ProjectDetailPage({
   }
 
   if (isOwner) {
-    const applicationsResult = await supabase
+    let applicationsQuery = supabase
       .from("applications")
       .select("id, applicant_id, message, status, created_at")
-      .eq("project_id", project.id)
-      .order("created_at", { ascending: false });
+      .eq("project_id", project.id);
+
+    applicationsQuery =
+      applicantStatus === "pending"
+        ? applicationsQuery.eq("status", "pending")
+        : applicationsQuery.in("status", [
+            "accepted",
+            "rejected",
+            "withdrawn",
+          ]);
+
+    const applicationsResult = await applicationsQuery
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(applicantsOffset, applicantsOffset + APPLICANTS_PAGE_SIZE);
 
     if (applicationsResult.error) {
       throw new Error("Unable to load project applications.");
     }
 
-    const applicationRows = applicationsResult.data as OwnerApplication[];
-    const orderedApplications = [
-      ...applicationRows.filter((row) => row.status === "pending"),
-      ...applicationRows.filter((row) => row.status !== "pending"),
+    const { items: applicationRows, hasNext } = slicePageResults(
+      applicationsResult.data as OwnerApplication[],
+      APPLICANTS_PAGE_SIZE,
+    );
+    hasNextApplicants = hasNext;
+    const applicantIds = [
+      ...new Set(applicationRows.map((row) => row.applicant_id)),
     ];
-    const applicantIds = orderedApplications.map((row) => row.applicant_id);
 
     if (applicantIds.length > 0) {
       const [profilesResult, userSkillsResult] = await Promise.all([
@@ -395,7 +421,7 @@ export default async function ProjectDetailPage({
         }
       }
 
-      applicants = orderedApplications.map((application) => {
+      applicants = applicationRows.map((application) => {
         const profile = profileById.get(application.applicant_id);
 
         if (!profile) {
@@ -411,6 +437,20 @@ export default async function ProjectDetailPage({
       });
     }
   }
+
+  const projectPathname = `/projects/${project.id}`;
+  const pendingApplicantsHref = buildPaginationHref({
+    pathname: projectPathname,
+    searchParams: { ...queryParams, applicantStatus: undefined },
+    page: 1,
+    pageParamName: "applicantsPage",
+  });
+  const historyApplicantsHref = buildPaginationHref({
+    pathname: projectPathname,
+    searchParams: { ...queryParams, applicantStatus: "history" },
+    page: 1,
+    pageParamName: "applicantsPage",
+  });
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
@@ -637,9 +677,43 @@ export default async function ProjectDetailPage({
                 </p>
               </div>
 
+              <nav
+                aria-label="Applicant status"
+                className="mt-5 flex flex-wrap gap-2"
+              >
+                <Link
+                  href={pendingApplicantsHref}
+                  aria-current={
+                    applicantStatus === "pending" ? "page" : undefined
+                  }
+                  className={
+                    applicantStatus === "pending"
+                      ? "inline-flex h-9 items-center rounded-lg bg-zinc-950 px-3 text-sm font-medium text-white dark:bg-white dark:text-zinc-950"
+                      : "inline-flex h-9 items-center rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }
+                >
+                  Pending
+                </Link>
+                <Link
+                  href={historyApplicantsHref}
+                  aria-current={
+                    applicantStatus === "history" ? "page" : undefined
+                  }
+                  className={
+                    applicantStatus === "history"
+                      ? "inline-flex h-9 items-center rounded-lg bg-zinc-950 px-3 text-sm font-medium text-white dark:bg-white dark:text-zinc-950"
+                      : "inline-flex h-9 items-center rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }
+                >
+                  History
+                </Link>
+              </nav>
+
               {applicants.length === 0 ? (
                 <p className="mt-5 text-sm text-zinc-600 dark:text-zinc-400">
-                  No applications yet.
+                  {applicantStatus === "pending"
+                    ? "No pending applications."
+                    : "No application history yet."}
                 </p>
               ) : (
                 <ul className="mt-5 space-y-4">
@@ -713,6 +787,20 @@ export default async function ProjectDetailPage({
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {(applicantsPage > 1 || hasNextApplicants) && (
+                <PaginationNav
+                  pathname={projectPathname}
+                  currentPage={applicantsPage}
+                  hasNext={hasNextApplicants}
+                  searchParams={{
+                    ...queryParams,
+                    applicantStatus:
+                      applicantStatus === "history" ? "history" : undefined,
+                  }}
+                  pageParamName="applicantsPage"
+                />
               )}
             </section>
           )}
