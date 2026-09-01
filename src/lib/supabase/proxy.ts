@@ -1,8 +1,28 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+function createResponse(request: NextRequest, forwardedHeaders?: Headers) {
+  if (!forwardedHeaders) {
+    return NextResponse.next({ request });
+  }
+
+  const requestHeaders = new Headers(forwardedHeaders);
+  const cookieHeader = request.headers.get("cookie");
+
+  if (cookieHeader) {
+    requestHeaders.set("cookie", cookieHeader);
+  } else {
+    requestHeaders.delete("cookie");
+  }
+
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+export async function updateSession(
+  request: NextRequest,
+  forwardedHeaders?: Headers,
+) {
+  let response = createResponse(request, forwardedHeaders);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,7 +37,7 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value),
           );
 
-          response = NextResponse.next({ request });
+          response = createResponse(request, forwardedHeaders);
 
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
