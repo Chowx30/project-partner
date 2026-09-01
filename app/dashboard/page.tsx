@@ -2,9 +2,13 @@ import Link from "next/link";
 
 import { logoutAction } from "@/app/auth/actions";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
+import { DASHBOARD_PROJECT_LIMIT } from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption, SkillOption } from "@/src/lib/profile/data";
-import type { ProjectPostType } from "@/src/lib/projects/validation";
+import {
+  PROJECT_MEMBERS_MAX,
+  type ProjectPostType,
+} from "@/src/lib/projects/validation";
 import { createClient } from "@/src/lib/supabase/server";
 
 type CurrentProjectStatus = "open" | "closed";
@@ -23,6 +27,11 @@ type CurrentProject = {
 type ProjectMemberRow = {
   project_id: string;
   user_id: string;
+};
+
+type JoinedMembershipRow = {
+  project_id: string;
+  joined_at: string;
 };
 
 type OwnerSummary = {
@@ -102,11 +111,16 @@ export default async function DashboardPage() {
         )
         .eq("owner_id", user.id)
         .in("status", ["open", "closed"])
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(DASHBOARD_PROJECT_LIMIT),
       supabase
         .from("project_members")
-        .select("project_id")
-        .eq("user_id", user.id),
+        .select("project_id, joined_at")
+        .eq("user_id", user.id)
+        .order("joined_at", { ascending: false })
+        .order("project_id", { ascending: false })
+        .limit(DASHBOARD_PROJECT_LIMIT),
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
@@ -129,7 +143,7 @@ export default async function DashboardPage() {
   const ownedProjectIds = new Set(ownedProjects.map((project) => project.id));
   const joinedProjectIds = [
     ...new Set(
-      membershipsResult.data
+      (membershipsResult.data as JoinedMembershipRow[])
         .map((membership) => membership.project_id)
         .filter((projectId) => !ownedProjectIds.has(projectId)),
     ),
@@ -143,16 +157,25 @@ export default async function DashboardPage() {
           )
           .in("id", joinedProjectIds)
           .in("status", ["open", "closed"])
-          .order("created_at", { ascending: false })
+          .limit(DASHBOARD_PROJECT_LIMIT)
       : { data: [] as CurrentProject[], error: null };
 
   if (joinedProjectsResult.error) {
     throw new Error("Unable to load joined projects.");
   }
 
-  const joinedProjects = (joinedProjectsResult.data as CurrentProject[]).filter(
-    (project) => project.owner_id !== user.id,
+  const joinedProjectById = new Map(
+    (joinedProjectsResult.data as CurrentProject[]).map((project) => [
+      project.id,
+      project,
+    ]),
   );
+  const joinedProjects = joinedProjectIds
+    .map((projectId) => joinedProjectById.get(projectId))
+    .filter(
+      (project): project is CurrentProject =>
+        project !== undefined && project.owner_id !== user.id,
+    );
   const userCourseIds = userCoursesResult.data.map((row) => row.course_id);
   const userSkillIds = userSkillsResult.data.map((row) => row.skill_id);
   const allCourseIds = [
@@ -188,6 +211,7 @@ export default async function DashboardPage() {
           .from("project_members")
           .select("project_id, user_id")
           .in("project_id", ownedIds)
+          .limit(DASHBOARD_PROJECT_LIMIT * PROJECT_MEMBERS_MAX)
       : Promise.resolve({ data: [] as ProjectMemberRow[], error: null });
   const joinedOwnersQuery =
     joinedOwnerIds.length > 0
