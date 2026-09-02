@@ -1,24 +1,113 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  --pp-accent: #b9ff66;
+  --pp-dark: #191a23;
+  --pp-background: #ffffff;
+  --pp-surface: #f3f3f3;
+  --pp-muted: #5f6068;
+  --pp-border: #d8d8dc;
+  --pp-danger: #b42318;
+  --pp-success: #16794b;
+  --pp-warning: #925c00;
+
+  --pp-font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  --pp-radius-control: 0.75rem;
+  --pp-radius-card: 1rem;
+  --pp-radius-feature: 1.5rem;
+
+  --pp-shadow-card: 0.25rem 0.25rem 0 var(--pp-dark);
+  --pp-shadow-card-hover: 0.375rem 0.375rem 0 var(--pp-dark);
+
+  --pp-container-app: 72rem;
+  --pp-container-reading: 56rem;
+  --pp-container-form: 48rem;
+
+  --background: var(--pp-background);
+  --foreground: var(--pp-dark);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-accent: var(--pp-accent);
+  --color-dark: var(--pp-dark);
+  --color-background: var(--pp-background);
+  --color-foreground: var(--pp-dark);
+  --color-surface: var(--pp-surface);
+  --color-muted: var(--pp-muted);
+  --color-border: var(--pp-border);
+  --color-danger: var(--pp-danger);
+  --color-success: var(--pp-success);
+  --color-warning: var(--pp-warning);
+
+  --font-sans: var(--pp-font-sans);
+
+  --radius-control: var(--pp-radius-control);
+  --radius-card: var(--pp-radius-card);
+  --radius-feature: var(--pp-radius-feature);
+  --radius-hero: var(--pp-radius-feature);
+
+  --shadow-card: var(--pp-shadow-card);
+  --shadow-card-hover: var(--pp-shadow-card-hover);
+
+  --container-app: var(--pp-container-app);
+  --container-reading: var(--pp-container-reading);
+  --container-form: var(--pp-container-form);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--pp-background);
+  color: var(--pp-dark);
+  font-family: var(--pp-font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--pp-accent);
+  color: var(--pp-dark);
+}
+
+:where(
+    a[href],
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+  outline: 2px solid var(--pp-dark);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px var(--pp-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
 }
