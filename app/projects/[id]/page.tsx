@@ -7,7 +7,7 @@ import { CommentControls } from "@/app/projects/[id]/comment-controls";
 import { CommentForm } from "@/app/projects/[id]/comment-form";
 import { ReportControls } from "@/app/projects/[id]/report-controls";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
-import { ProjectsHeader } from "@/app/projects/projects-header";
+import { AppHeader } from "@/src/components/app-header";
 import { PaginationNav } from "@/src/components/pagination-nav";
 import {
   APPLICANTS_PAGE_SIZE,
@@ -454,9 +454,9 @@ export default async function ProjectDetailPage({
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
-      <div className="mx-auto max-w-4xl">
-        <ProjectsHeader />
+      <AppHeader profileId={user.id} activeItem="projects" />
 
+      <div className="mx-auto max-w-4xl">
         <article className="py-10 sm:py-14">
           <Link
             href="/projects"

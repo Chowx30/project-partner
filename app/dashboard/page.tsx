@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { logoutAction } from "@/app/auth/actions";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
+import { AppHeader } from "@/src/components/app-header";
 import { DASHBOARD_PROJECT_LIMIT } from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption, SkillOption } from "@/src/lib/profile/data";
@@ -266,24 +266,9 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
-      <div className="mx-auto max-w-5xl">
-        <header className="flex items-center justify-between border-b border-zinc-200 pb-5 dark:border-zinc-800">
-          <Link
-            href="/"
-            className="text-sm font-semibold tracking-wide text-zinc-950 dark:text-white"
-          >
-            Project Partner
-          </Link>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
-            >
-              Log out
-            </button>
-          </form>
-        </header>
+      <AppHeader profileId={user.id} activeItem="dashboard" />
 
+      <div className="mx-auto max-w-5xl">
         <section className="py-12 sm:py-16">
           <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
             Dashboard

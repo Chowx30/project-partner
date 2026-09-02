@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import { ProjectForm } from "@/app/projects/new/project-form";
-import { ProjectsHeader } from "@/app/projects/projects-header";
+import { AppHeader } from "@/src/components/app-header";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption } from "@/src/lib/profile/data";
 import { createClient } from "@/src/lib/supabase/server";
 
 export default async function NewProjectPage() {
-  await requireCompletedProfile();
+  const { user } = await requireCompletedProfile();
 
   const supabase = await createClient();
   const coursesResult = await supabase
@@ -21,9 +21,9 @@ export default async function NewProjectPage() {
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
-      <div className="mx-auto max-w-3xl">
-        <ProjectsHeader />
+      <AppHeader profileId={user.id} activeItem="projects" />
 
+      <div className="mx-auto max-w-3xl">
         <div className="py-10 sm:py-14">
           <Link
             href="/projects"

@@ -4,7 +4,7 @@ import {
   MarkAllNotificationsReadButton,
   MarkNotificationReadButton,
 } from "@/app/notifications/notification-actions";
-import { ProjectsHeader } from "@/app/projects/projects-header";
+import { AppHeader } from "@/src/components/app-header";
 import { PaginationNav } from "@/src/components/pagination-nav";
 import {
   getPageOffset,
@@ -113,9 +113,9 @@ export default async function NotificationsPage({
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
-      <div className="mx-auto max-w-5xl">
-        <ProjectsHeader />
+      <AppHeader profileId={user.id} activeItem="notifications" />
 
+      <div className="mx-auto max-w-5xl">
         <section className="py-10 sm:py-14">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>

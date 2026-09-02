@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { reportUserAction } from "@/app/profile/[id]/actions";
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
-import { ProjectsHeader } from "@/app/projects/projects-header";
+import { AppHeader } from "@/src/components/app-header";
 import { ReportForm } from "@/src/components/report-form";
 import { PROFILE_PROJECT_LIMIT } from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
@@ -252,9 +252,12 @@ export default async function PublicProfilePage({
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
-      <div className="mx-auto max-w-5xl">
-        <ProjectsHeader />
+      <AppHeader
+        profileId={user.id}
+        activeItem={isOwnProfile ? "profile" : undefined}
+      />
 
+      <div className="mx-auto max-w-5xl">
         <article className="py-10 sm:py-14">
           <Link
             href="/dashboard"
