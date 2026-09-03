@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/app/auth/actions";
 import { OnboardingForm } from "@/app/onboarding/onboarding-form";
+import { EmptyState } from "@/src/components/empty-state";
+import { Button } from "@/src/components/ui/button";
 import { getAuthenticatedUser } from "@/src/lib/auth/session";
 import {
   type CourseOption,
@@ -13,9 +15,11 @@ import { createClient } from "@/src/lib/supabase/server";
 
 function UnavailableState() {
   return (
-    <div className="rounded-2xl border border-red-200 bg-white p-6 text-sm text-red-700 dark:border-red-900 dark:bg-zinc-900 dark:text-red-300">
-      We could not load profile setup right now. Refresh the page to try again.
-    </div>
+    <EmptyState
+      title="Profile setup is unavailable"
+      description="We could not load profile setup right now. Refresh the page to try again."
+      className="border-danger bg-white"
+    />
   );
 }
 
@@ -49,58 +53,68 @@ export default async function OnboardingPage() {
   const catalogUnavailable = coursesResult.error || skillsResult.error;
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
-      <div className="mx-auto max-w-4xl">
-        <header className="flex items-center justify-between border-b border-zinc-200 pb-5 dark:border-zinc-800">
+    <div className="min-h-screen bg-white">
+      <header className="border-b-2 border-dark bg-white">
+        <div className="mx-auto flex min-h-20 max-w-reading items-center justify-between gap-3 px-4 sm:px-6">
           <Link
             href="/"
-            className="text-sm font-semibold tracking-wide text-zinc-950 dark:text-white"
+            className="flex items-center gap-2 text-base font-black tracking-tight sm:text-lg"
           >
+            <span className="grid size-9 place-items-center rounded-full border-2 border-dark bg-accent text-sm">
+              PP
+            </span>
             Project Partner
           </Link>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
-            >
-              Log out
-            </button>
-          </form>
-        </header>
-
-        <div className="py-10 sm:py-14">
-          <div className="mb-8">
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Student onboarding
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white">
-              Set up your profile
-            </h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-              Help other students understand your course context and skills.
-            </p>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm font-semibold text-muted sm:inline">
+              Complete your profile
+            </span>
+            <form action={logoutAction}>
+              <Button
+                type="submit"
+                variant="secondary"
+                className="px-3 sm:px-4"
+              >
+                Log out
+              </Button>
+            </form>
           </div>
-
-          {!snapshot || catalogUnavailable ? (
-            <UnavailableState />
-          ) : (
-            <OnboardingForm
-              courses={coursesResult.data as CourseOption[]}
-              skills={skillsResult.data as SkillOption[]}
-              initialValues={{
-                fullName: snapshot.profile?.full_name ?? "",
-                department: snapshot.profile?.department ?? "",
-                studentId: snapshot.studentId,
-                graduationYear:
-                  snapshot.profile?.graduation_year?.toString() ?? "",
-                bio: snapshot.profile?.bio ?? "",
-                courseIds: snapshot.courseIds,
-                skillIds: snapshot.skillIds,
-              }}
-            />
-          )}
         </div>
-      </div>
-    </main>
+      </header>
+
+      <main className="mx-auto max-w-reading px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mb-10 sm:mb-12">
+          <p className="inline-block rounded-control bg-accent px-3 py-1 text-sm font-black">
+            Set up your profile
+          </p>
+          <h1 className="mt-5 text-4xl font-black leading-[1.05] tracking-[-0.035em] sm:text-5xl">
+            Build your student profile
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+            Add your academic information, current courses, and skills so teams
+            can find the right match.
+          </p>
+        </div>
+
+        {!snapshot || catalogUnavailable ? (
+          <UnavailableState />
+        ) : (
+          <OnboardingForm
+            courses={coursesResult.data as CourseOption[]}
+            skills={skillsResult.data as SkillOption[]}
+            initialValues={{
+              fullName: snapshot.profile?.full_name ?? "",
+              department: snapshot.profile?.department ?? "",
+              studentId: snapshot.studentId,
+              graduationYear:
+                snapshot.profile?.graduation_year?.toString() ?? "",
+              bio: snapshot.profile?.bio ?? "",
+              courseIds: snapshot.courseIds,
+              skillIds: snapshot.skillIds,
+            }}
+          />
+        )}
+      </main>
+    </div>
   );
 }

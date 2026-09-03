@@ -16,6 +16,15 @@ import {
   MIN_GRADUATION_YEAR,
   STUDENT_ID_MAX_LENGTH,
 } from "@/src/lib/profile/validation";
+import { Button } from "@/src/components/ui/button";
+import {
+  errorTextStyles,
+  helpTextStyles,
+  inputStyles,
+  labelStyles,
+  selectStyles,
+  textareaStyles,
+} from "@/src/components/ui/form-controls";
 
 type InitialValues = {
   fullName: string;
@@ -35,19 +44,43 @@ type CatalogItem = {
 };
 
 type SelectionListProps = {
+  number: string;
   idPrefix: string;
   name: "courseIds" | "skillIds";
   legend: string;
+  description: string;
   searchLabel: string;
   items: CatalogItem[];
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   error?: string;
   pending: boolean;
+  className: string;
 };
 
-const inputClassName =
-  "mt-2 h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-zinc-300";
+function SectionHeading({
+  number,
+  title,
+  description,
+}: {
+  number: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-4 sm:gap-6">
+      <span className="shrink-0 text-4xl font-black leading-none tracking-[-0.05em] sm:text-5xl">
+        {number}
+      </span>
+      <div>
+        <h2 className="text-xl font-black tracking-tight sm:text-2xl">
+          {title}
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
+      </div>
+    </div>
+  );
+}
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) {
@@ -55,22 +88,25 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   }
 
   return (
-    <p id={id} className="mt-2 text-sm text-red-600 dark:text-red-400">
+    <p id={id} className={errorTextStyles}>
       {message}
     </p>
   );
 }
 
 function SelectionList({
+  number,
   idPrefix,
   name,
   legend,
+  description,
   searchLabel,
   items,
   selectedIds,
   onToggle,
   error,
   pending,
+  className,
 }: SelectionListProps) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
@@ -80,19 +116,26 @@ function SelectionList({
   const errorId = `${idPrefix}-error`;
 
   return (
-    <fieldset aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined}>
-      <div className="flex items-baseline justify-between gap-4">
-        <legend className="text-base font-semibold text-zinc-950 dark:text-white">
-          {legend}
-        </legend>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+    <fieldset
+      aria-invalid={Boolean(error)}
+      aria-describedby={error ? errorId : undefined}
+      className={`rounded-feature border-2 border-dark p-5 sm:p-7 ${className}`}
+    >
+      <legend className="sr-only">{legend}</legend>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <SectionHeading
+          number={number}
+          title={legend}
+          description={description}
+        />
+        <span className="shrink-0 rounded-full border-2 border-dark bg-dark px-3 py-1 text-xs font-bold text-white">
           {selectedIds.size} selected
         </span>
       </div>
 
       <label
         htmlFor={`${idPrefix}-search`}
-        className="mt-4 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        className={`mt-6 ${labelStyles}`}
       >
         {searchLabel}
       </label>
@@ -101,34 +144,37 @@ function SelectionList({
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        className={inputClassName}
+        className={`mt-2 ${inputStyles}`}
         placeholder={`Search ${legend.toLowerCase()}`}
       />
 
-      <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="mt-4 grid max-h-80 gap-2 overflow-y-auto rounded-card border-2 border-dark bg-white p-2 md:grid-cols-2">
         {items.map((item) => {
           const isVisible = item.searchText.includes(normalizedQuery);
+          const isSelected = selectedIds.has(item.id);
 
           return (
             <label
               key={item.id}
-              className={`${isVisible ? "flex" : "hidden"} cursor-pointer items-start gap-3 border-b border-zinc-100 px-3 py-3 last:border-b-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900`}
+              className={`${isVisible ? "flex" : "hidden"} min-h-14 cursor-pointer items-start gap-3 rounded-control border-2 border-dark px-3 py-3 transition-colors ${
+                isSelected ? "bg-accent" : "bg-white hover:bg-surface"
+              }`}
             >
               <input
                 type="checkbox"
                 name={name}
                 value={item.id}
-                checked={selectedIds.has(item.id)}
+                checked={isSelected}
                 onChange={() => onToggle(item.id)}
                 disabled={pending}
-                className="mt-0.5 size-4 rounded border-zinc-300 accent-zinc-950"
+                className="mt-0.5 size-5 shrink-0 accent-dark"
               />
               <span className="min-w-0 text-sm">
-                <span className="block font-medium text-zinc-900 dark:text-zinc-100">
+                <span className="block font-bold text-dark">
                   {item.title}
                 </span>
                 {item.description && (
-                  <span className="mt-0.5 block leading-5 text-zinc-500 dark:text-zinc-400">
+                  <span className="mt-0.5 block leading-5 text-muted">
                     {item.description}
                   </span>
                 )}
@@ -138,7 +184,7 @@ function SelectionList({
         })}
 
         {visibleCount === 0 && (
-          <p className="px-3 py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="px-3 py-6 text-center text-sm text-muted md:col-span-2">
             No matches found.
           </p>
         )}
@@ -226,23 +272,25 @@ export function OnboardingForm({
   }
 
   return (
-    <form action={formAction} onSubmit={validateSelections} className="space-y-10">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-7 dark:border-zinc-800 dark:bg-zinc-900">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-950 dark:text-white">
-            Basic information
-          </h2>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Your student ID is private and does not indicate verification.
-          </p>
-        </div>
+    <form
+      action={formAction}
+      onSubmit={validateSelections}
+      className="space-y-8 sm:space-y-10"
+    >
+      <section className="rounded-feature border-2 border-dark bg-surface p-5 shadow-card sm:p-7">
+        <SectionHeading
+          number="01"
+          title="Basic Information"
+          description="Add the academic details other students need to understand your profile."
+        />
+
+        <p className="mt-5 rounded-control border-2 border-dark bg-white px-3 py-2 text-sm text-muted">
+          Your student ID is private and does not indicate verification.
+        </p>
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label
-              htmlFor="fullName"
-              className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
-            >
+            <label htmlFor="fullName" className={labelStyles}>
               Full name
             </label>
             <input
@@ -256,16 +304,13 @@ export function OnboardingForm({
               disabled={pending}
               aria-invalid={Boolean(errors.fullName)}
               aria-describedby={errors.fullName ? "full-name-error" : undefined}
-              className={inputClassName}
+              className={`mt-2 ${inputStyles}`}
             />
             <FieldError id="full-name-error" message={errors.fullName} />
           </div>
 
           <div>
-            <label
-              htmlFor="department"
-              className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
-            >
+            <label htmlFor="department" className={labelStyles}>
               Department
             </label>
             <select
@@ -276,7 +321,7 @@ export function OnboardingForm({
               disabled={pending}
               aria-invalid={Boolean(errors.department)}
               aria-describedby={errors.department ? "department-error" : undefined}
-              className={inputClassName}
+              className={`mt-2 ${selectStyles}`}
             >
               <option value="" disabled>
                 Choose a department
@@ -291,10 +336,7 @@ export function OnboardingForm({
           </div>
 
           <div>
-            <label
-              htmlFor="studentId"
-              className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
-            >
+            <label htmlFor="studentId" className={labelStyles}>
               Student ID
             </label>
             <input
@@ -307,20 +349,19 @@ export function OnboardingForm({
               required
               disabled={pending}
               aria-invalid={Boolean(errors.studentId)}
-              aria-describedby={errors.studentId ? "student-id-error" : "student-id-help"}
-              className={inputClassName}
+              aria-describedby={
+                errors.studentId ? "student-id-error" : "student-id-help"
+              }
+              className={`mt-2 ${inputStyles}`}
             />
-            <p id="student-id-help" className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <p id="student-id-help" className={helpTextStyles}>
               Stored privately for later verification.
             </p>
             <FieldError id="student-id-error" message={errors.studentId} />
           </div>
 
           <div>
-            <label
-              htmlFor="graduationYear"
-              className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
-            >
+            <label htmlFor="graduationYear" className={labelStyles}>
               Graduation year
             </label>
             <input
@@ -338,7 +379,7 @@ export function OnboardingForm({
               aria-describedby={
                 errors.graduationYear ? "graduation-year-error" : undefined
               }
-              className={inputClassName}
+              className={`mt-2 ${inputStyles}`}
             />
             <FieldError
               id="graduation-year-error"
@@ -347,11 +388,8 @@ export function OnboardingForm({
           </div>
 
           <div className="sm:col-span-2">
-            <label
-              htmlFor="bio"
-              className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
-            >
-              Short bio <span className="font-normal text-zinc-500">(optional)</span>
+            <label htmlFor="bio" className={labelStyles}>
+              Short bio <span className="font-normal text-muted">(optional)</span>
             </label>
             <textarea
               id="bio"
@@ -362,57 +400,68 @@ export function OnboardingForm({
               disabled={pending}
               aria-invalid={Boolean(errors.bio)}
               aria-describedby={errors.bio ? "bio-error" : undefined}
-              className="mt-2 w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white"
+              className={`mt-2 ${textareaStyles}`}
             />
             <FieldError id="bio-error" message={errors.bio} />
           </div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-7 dark:border-zinc-800 dark:bg-zinc-900">
-        <SelectionList
-          idPrefix="courses"
-          name="courseIds"
-          legend="Current courses"
-          searchLabel="Search by course code or name"
-          items={courseItems}
-          selectedIds={selectedCourseIds}
-          onToggle={(id) => toggleSelection(id, setSelectedCourseIds)}
-          error={errors.courses}
-          pending={pending}
-        />
-      </section>
+      <SelectionList
+        number="02"
+        idPrefix="courses"
+        name="courseIds"
+        legend="Current Courses"
+        description="Choose the courses you are taking now."
+        searchLabel="Search by course code or name"
+        items={courseItems}
+        selectedIds={selectedCourseIds}
+        onToggle={(id) => toggleSelection(id, setSelectedCourseIds)}
+        error={errors.courses}
+        pending={pending}
+        className="bg-white shadow-card"
+      />
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-7 dark:border-zinc-800 dark:bg-zinc-900">
-        <SelectionList
-          idPrefix="skills"
-          name="skillIds"
-          legend="Skills"
-          searchLabel="Search skills"
-          items={skillItems}
-          selectedIds={selectedSkillIds}
-          onToggle={(id) => toggleSelection(id, setSelectedSkillIds)}
-          error={errors.skills}
-          pending={pending}
-        />
-      </section>
+      <SelectionList
+        number="03"
+        idPrefix="skills"
+        name="skillIds"
+        legend="Skills"
+        description="Select the skills you can bring to a team."
+        searchLabel="Search skills"
+        items={skillItems}
+        selectedIds={selectedSkillIds}
+        onToggle={(id) => toggleSelection(id, setSelectedSkillIds)}
+        error={errors.skills}
+        pending={pending}
+        className="bg-surface"
+      />
 
-      {state.message && (
-        <p
-          role="alert"
-          className="rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+      <section className="rounded-feature border-2 border-dark bg-accent p-5 shadow-card sm:p-7">
+        <SectionHeading
+          number="04"
+          title="Complete Profile"
+          description="Review your information and finish setup."
+        />
+
+        {state.message && (
+          <p
+            role="alert"
+            className="mt-6 rounded-control border-2 border-danger bg-white p-4 text-sm font-medium text-danger"
+          >
+            {state.message}
+          </p>
+        )}
+
+        <Button
+          type="submit"
+          disabled={pending}
+          featured
+          className="mt-7 w-full sm:w-auto sm:min-w-56"
         >
-          {state.message}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex h-12 w-full items-center justify-center rounded-lg bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-      >
-        {pending ? "Completing profile…" : "Complete profile"}
-      </button>
+          {pending ? "Completing profile…" : "Complete Profile"}
+        </Button>
+      </section>
     </form>
   );
 }
