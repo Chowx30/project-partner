@@ -13,9 +13,13 @@ import {
   normalizeEmail,
   NSU_EMAIL_MESSAGE,
 } from "@/src/lib/auth/validation";
-
-const inputClassName =
-  "mt-2 h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-zinc-300";
+import { Button } from "@/src/components/ui/button";
+import {
+  errorTextStyles,
+  helpTextStyles,
+  inputStyles,
+  labelStyles,
+} from "@/src/components/ui/form-controls";
 
 export function SignupForm() {
   const [state, formAction, isPending] = useActionState(
@@ -54,15 +58,15 @@ export function SignupForm() {
   if (state.status === "success") {
     return (
       <div role="status" className="space-y-4">
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">
-          <p className="font-medium">Check your email</p>
+        <div className="rounded-control border-2 border-success bg-white p-4 text-sm leading-6 text-dark">
+          <p className="font-bold text-success">Check your email</p>
           <p className="mt-1">{state.message}</p>
         </div>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-muted">
           Already confirmed?{" "}
           <Link
             href="/login"
-            className="font-medium text-zinc-950 underline underline-offset-4 dark:text-white"
+            className="font-bold text-dark underline decoration-accent decoration-2 underline-offset-4"
           >
             Log in
           </Link>
@@ -76,7 +80,7 @@ export function SignupForm() {
       <div>
         <label
           htmlFor="email"
-          className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
+          className={labelStyles}
         >
           University email
         </label>
@@ -90,13 +94,13 @@ export function SignupForm() {
           disabled={isPending}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? "signup-email-error" : undefined}
-          className={inputClassName}
+          className={`mt-2 ${inputStyles}`}
           placeholder="name@northsouth.edu"
         />
         {errors.email && (
           <p
             id="signup-email-error"
-            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            className={errorTextStyles}
           >
             {errors.email}
           </p>
@@ -106,7 +110,7 @@ export function SignupForm() {
       <div className="mt-5">
         <label
           htmlFor="password"
-          className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
+          className={labelStyles}
         >
           Password
         </label>
@@ -122,19 +126,19 @@ export function SignupForm() {
           aria-describedby={
             errors.password ? "signup-password-error" : "signup-password-help"
           }
-          className={inputClassName}
+          className={`mt-2 ${inputStyles}`}
         />
         {errors.password ? (
           <p
             id="signup-password-error"
-            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            className={errorTextStyles}
           >
             {errors.password}
           </p>
         ) : (
           <p
             id="signup-password-help"
-            className="mt-2 text-xs text-zinc-500 dark:text-zinc-400"
+            className={helpTextStyles}
           >
             Use at least 8 characters.
           </p>
@@ -144,7 +148,7 @@ export function SignupForm() {
       <div className="mt-5">
         <label
           htmlFor="confirmPassword"
-          className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
+          className={labelStyles}
         >
           Confirm password
         </label>
@@ -160,12 +164,12 @@ export function SignupForm() {
           aria-describedby={
             errors.confirmPassword ? "signup-confirm-error" : undefined
           }
-          className={inputClassName}
+          className={`mt-2 ${inputStyles}`}
         />
         {errors.confirmPassword && (
           <p
             id="signup-confirm-error"
-            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            className={errorTextStyles}
           >
             {errors.confirmPassword}
           </p>
@@ -175,19 +179,20 @@ export function SignupForm() {
       {state.message && (
         <p
           role="alert"
-          className="mt-5 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+          className="mt-5 rounded-control border-2 border-danger bg-white p-3 text-sm font-medium text-danger"
         >
           {state.message}
         </p>
       )}
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="mt-6 flex h-11 w-full items-center justify-center rounded-lg bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+        featured
+        className="mt-7 w-full"
       >
-        {isPending ? "Creating account…" : "Create account"}
-      </button>
+        {isPending ? "Creating account…" : "Create Account"}
+      </Button>
     </form>
   );
 }

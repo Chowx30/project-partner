@@ -12,9 +12,12 @@ import {
   normalizeEmail,
   NSU_EMAIL_MESSAGE,
 } from "@/src/lib/auth/validation";
-
-const inputClassName =
-  "mt-2 h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:focus:border-zinc-300";
+import { Button } from "@/src/components/ui/button";
+import {
+  errorTextStyles,
+  inputStyles,
+  labelStyles,
+} from "@/src/components/ui/form-controls";
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(
@@ -50,7 +53,7 @@ export function LoginForm() {
       <div>
         <label
           htmlFor="email"
-          className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
+          className={labelStyles}
         >
           University email
         </label>
@@ -64,13 +67,13 @@ export function LoginForm() {
           disabled={isPending}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? "login-email-error" : undefined}
-          className={inputClassName}
+          className={`mt-2 ${inputStyles}`}
           placeholder="name@northsouth.edu"
         />
         {errors.email && (
           <p
             id="login-email-error"
-            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            className={errorTextStyles}
           >
             {errors.email}
           </p>
@@ -80,7 +83,7 @@ export function LoginForm() {
       <div className="mt-5">
         <label
           htmlFor="password"
-          className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
+          className={labelStyles}
         >
           Password
         </label>
@@ -93,12 +96,12 @@ export function LoginForm() {
           disabled={isPending}
           aria-invalid={Boolean(errors.password)}
           aria-describedby={errors.password ? "login-password-error" : undefined}
-          className={inputClassName}
+          className={`mt-2 ${inputStyles}`}
         />
         {errors.password && (
           <p
             id="login-password-error"
-            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            className={errorTextStyles}
           >
             {errors.password}
           </p>
@@ -108,19 +111,20 @@ export function LoginForm() {
       {state.message && (
         <p
           role="alert"
-          className="mt-5 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+          className="mt-5 rounded-control border-2 border-danger bg-white p-3 text-sm font-medium text-danger"
         >
           {state.message}
         </p>
       )}
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="mt-6 flex h-11 w-full items-center justify-center rounded-lg bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+        featured
+        className="mt-7 w-full"
       >
-        {isPending ? "Logging in…" : "Log in"}
-      </button>
+        {isPending ? "Logging in…" : "Log In"}
+      </Button>
     </form>
   );
 }

@@ -29,16 +29,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthShell
-      title="Welcome back"
-      description="Log in with your North South University account."
+      eyebrow="Welcome back"
+      title="Log in to Project Partner"
+      description="Continue finding project and lab partners."
       footer={
         <>
-          Need an account?{" "}
+          New here?{" "}
           <Link
             href="/signup"
-            className="font-medium text-zinc-950 underline underline-offset-4 dark:text-white"
+            className="font-bold text-dark underline decoration-accent decoration-2 underline-offset-4"
           >
-            Create one
+            Create an account
           </Link>
         </>
       }
@@ -46,7 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       {notice && (
         <p
           role="status"
-          className="mb-5 rounded-lg bg-zinc-100 p-3 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+          className="mb-6 rounded-control border-2 border-dark bg-white p-3 text-sm text-dark"
         >
           {notice}
         </p>

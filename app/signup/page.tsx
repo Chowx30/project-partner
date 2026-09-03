@@ -12,14 +12,15 @@ export default async function SignupPage() {
 
   return (
     <AuthShell
-      title="Create your account"
-      description="Use your North South University email to join Project Partner."
+      eyebrow="Join Project Partner"
+      title="Create your student account"
+      description="Use your NSU email to get started."
       footer={
         <>
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-medium text-zinc-950 underline underline-offset-4 dark:text-white"
+            className="font-bold text-dark underline decoration-accent decoration-2 underline-offset-4"
           >
             Log in
           </Link>
