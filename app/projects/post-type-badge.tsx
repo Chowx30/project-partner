@@ -8,10 +8,10 @@ export function PostTypeBadge({ postType }: { postType: ProjectPostType }) {
 
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+      className={`inline-flex rounded-full border-2 px-2.5 py-1 text-xs font-bold leading-none ${
         isLab
-          ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-          : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+          ? "border-dark bg-white text-dark"
+          : "border-success bg-success/10 text-success"
       }`}
     >
       {projectPostTypeLabel(postType)}

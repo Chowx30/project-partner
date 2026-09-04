@@ -17,9 +17,9 @@ type PaginationNavProps = {
 };
 
 const linkClasses =
-  "inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800";
+  "inline-flex min-h-11 items-center justify-center rounded-control border-2 border-dark bg-white px-4 text-sm font-semibold text-dark transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dark motion-reduce:transition-none";
 const disabledClasses =
-  "inline-flex h-10 cursor-not-allowed items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600";
+  "inline-flex min-h-11 cursor-not-allowed items-center justify-center rounded-control border-2 border-border bg-surface px-4 text-sm font-semibold text-muted opacity-60";
 
 export function PaginationNav({
   pathname,
@@ -58,7 +58,7 @@ export function PaginationNav({
 
       <span
         aria-current="page"
-        className="text-sm font-medium text-zinc-600 dark:text-zinc-400"
+        className="rounded-full border-2 border-dark bg-accent px-3 py-1 text-sm font-bold text-dark"
       >
         Page {currentPage}
       </span>
