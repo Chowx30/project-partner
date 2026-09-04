@@ -2,6 +2,9 @@ import Link from "next/link";
 
 import { PostTypeBadge } from "@/app/projects/post-type-badge";
 import { AppHeader } from "@/src/components/app-header";
+import { EmptyState } from "@/src/components/empty-state";
+import { StatusBadge } from "@/src/components/status-badge";
+import { ButtonLink } from "@/src/components/ui/button";
 import { DASHBOARD_PROJECT_LIMIT } from "@/src/lib/pagination";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption, SkillOption } from "@/src/lib/profile/data";
@@ -52,41 +55,43 @@ function CurrentProjectCard({
   acceptedMemberCount?: number;
   ownerName?: string;
 }) {
-  const statusLabel =
-    project.status.charAt(0).toUpperCase() + project.status.slice(1);
-
   return (
-    <li className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-      <div className="flex flex-wrap items-center gap-2">
-        <PostTypeBadge postType={project.post_type} />
-        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-          {statusLabel}
-        </span>
-        <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-          {relationship}
+    <li
+      className={`rounded-feature border-2 border-dark p-5 sm:p-6 ${
+        relationship === "Owner" ? "bg-white shadow-card" : "bg-surface"
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border-2 border-dark bg-accent px-2.5 py-1 text-xs font-bold text-dark">
+            {courseCode}
+          </span>
+          <PostTypeBadge postType={project.post_type} />
+          <StatusBadge status={project.status} />
+        </div>
+        <span className="text-xs font-black uppercase tracking-[0.12em] text-muted">
+          {relationship === "Owner" ? "Project owner" : "Team member"}
         </span>
       </div>
-      <h4 className="mt-3 font-semibold text-zinc-950 dark:text-white">
+
+      <h3 className="mt-5 text-xl font-black leading-snug tracking-tight text-dark">
         {project.title}
-      </h4>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        {courseCode}
-      </p>
+      </h3>
       {relationship === "Owner" && acceptedMemberCount !== undefined && (
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-3 text-sm leading-6 text-muted">
           Accepted members: {acceptedMemberCount} / {project.members_needed}
         </p>
       )}
       {relationship === "Member" && ownerName && (
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-3 text-sm leading-6 text-muted">
           Owner: {ownerName}
         </p>
       )}
       <Link
         href={`/projects/${project.id}`}
-        className="mt-4 inline-flex text-sm font-medium text-zinc-700 underline underline-offset-4 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
+        className="mt-5 inline-flex min-h-11 items-center font-bold text-dark underline decoration-accent decoration-2 underline-offset-4 hover:decoration-dark"
       >
-        View project
+        View Project <span aria-hidden="true">→</span>
       </Link>
     </li>
   );
@@ -265,172 +270,239 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
+    <div className="min-h-screen bg-background px-4 sm:px-6">
       <AppHeader profileId={user.id} activeItem="dashboard" />
 
-      <div className="mx-auto max-w-5xl">
-        <section className="py-12 sm:py-16">
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            Dashboard
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl dark:text-white">
-            Welcome, {profile.full_name}
-          </h1>
-          <p className="mt-3 text-base text-zinc-600 dark:text-zinc-400">
-            {profile.department} · {user.email}
-          </p>
+      <main className="mx-auto max-w-app pb-16 pt-8 sm:pb-20 sm:pt-12">
+        <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="rounded-feature border-2 border-dark bg-surface p-6 shadow-card sm:p-9">
+            <p className="inline-block rounded-control bg-accent px-3 py-1 text-sm font-black">
+              Your workspace
+            </p>
+            <h1 className="mt-5 text-4xl font-black leading-[1.05] tracking-[-0.035em] sm:text-5xl">
+              Welcome back, {profile.full_name}
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+              Keep track of your teams, projects, and current academic interests.
+            </p>
+            <p className="mt-3 text-sm font-semibold text-dark">
+              {profile.department} · {user.email}
+            </p>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/projects"
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <ButtonLink
+                href="/projects/new"
+                variant="accent"
+                featured
+                className="w-full sm:w-auto"
+              >
+                Create Project
+              </ButtonLink>
+              <ButtonLink
+                href="/projects"
+                variant="secondary"
+                className="w-full sm:w-auto"
+              >
+                Browse Projects
+              </ButtonLink>
+            </div>
+
+            <nav
+              aria-label="Dashboard shortcuts"
+              className="mt-7 flex flex-wrap gap-x-6 gap-y-2 border-t-2 border-dark pt-5 text-sm font-bold"
             >
-              Browse partner posts
-            </Link>
-            <Link
-              href="/projects/new"
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              Create partner post
-            </Link>
-            <Link
-              href={`/profile/${user.id}`}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              My Profile
-            </Link>
-            <Link
-              href="/applications"
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              My Applications
-            </Link>
-            <Link
-              href="/notifications"
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              Notifications ({unreadNotificationCount})
-            </Link>
+              <Link
+                href={`/profile/${user.id}`}
+                className="inline-flex min-h-11 items-center underline decoration-accent decoration-2 underline-offset-4 hover:decoration-dark"
+              >
+                My Profile
+              </Link>
+              <Link
+                href="/applications"
+                className="inline-flex min-h-11 items-center underline decoration-accent decoration-2 underline-offset-4 hover:decoration-dark"
+              >
+                My Applications
+              </Link>
+            </nav>
           </div>
 
-          <section className="mt-10">
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Current teams
+          <aside
+            aria-labelledby="notifications-summary-heading"
+            className="flex flex-col rounded-feature border-2 border-dark bg-dark p-6 text-white shadow-card sm:p-8"
+          >
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-accent">
+              Stay current
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">
-              My Projects
+            <h2
+              id="notifications-summary-heading"
+              className="mt-4 text-2xl font-black tracking-tight"
+            >
+              Notifications
             </h2>
+            <p className="mt-8 text-7xl font-black leading-none text-accent">
+              {unreadNotificationCount}
+            </p>
+            <p className="mt-2 text-base text-white/75">
+              {unreadNotificationCount === 0
+                ? "You’re all caught up."
+                : "Unread notifications"}
+            </p>
+            <ButtonLink
+              href="/notifications"
+              variant="accent"
+              className="mt-8 w-full lg:mt-auto"
+            >
+              View Notifications
+            </ButtonLink>
+          </aside>
+        </section>
 
-            <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
-                <h3 className="text-base font-semibold text-zinc-950 dark:text-white">
-                  Owned by me
-                </h3>
-                {ownedProjects.length === 0 ? (
-                  <div className="mt-4">
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      You haven&apos;t created any active projects yet.
-                    </p>
-                    <Link
-                      href="/projects/new"
-                      className="mt-3 inline-flex text-sm font-medium text-zinc-700 underline underline-offset-4 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
-                    >
-                      Create partner post
-                    </Link>
-                  </div>
-                ) : (
-                  <ul className="mt-4 space-y-3">
-                    {ownedProjects.map((project) => (
-                      <CurrentProjectCard
-                        key={project.id}
-                        project={project}
-                        courseCode={
-                          courseById.get(project.course_id)?.course_code ??
-                          "Course unavailable"
-                        }
-                        relationship="Owner"
-                        acceptedMemberCount={
-                          acceptedCountByProject.get(project.id) ?? 0
-                        }
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
-                <h3 className="text-base font-semibold text-zinc-950 dark:text-white">
-                  Joined
-                </h3>
-                {joinedProjects.length === 0 ? (
-                  <div className="mt-4">
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      You haven&apos;t joined any active projects yet.
-                    </p>
-                    <Link
-                      href="/projects"
-                      className="mt-3 inline-flex text-sm font-medium text-zinc-700 underline underline-offset-4 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
-                    >
-                      Browse partner posts
-                    </Link>
-                  </div>
-                ) : (
-                  <ul className="mt-4 space-y-3">
-                    {joinedProjects.map((project) => (
-                      <CurrentProjectCard
-                        key={project.id}
-                        project={project}
-                        courseCode={
-                          courseById.get(project.course_id)?.course_code ??
-                          "Course unavailable"
-                        }
-                        relationship="Member"
-                        ownerName={ownerById.get(project.owner_id)?.full_name}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
+        <section className="mt-16" aria-labelledby="owned-projects-heading">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="inline-block rounded-control bg-accent px-3 py-1 text-sm font-black">
+                Projects you lead
+              </p>
+              <h2
+                id="owned-projects-heading"
+                className="mt-4 text-3xl font-black tracking-tight sm:text-4xl"
+              >
+                Owned Projects
+              </h2>
             </div>
+            <ButtonLink href="/projects/new" variant="secondary">
+              Create Project
+            </ButtonLink>
+          </div>
+
+          {ownedProjects.length === 0 ? (
+            <EmptyState
+              title="No owned projects yet"
+              description="You haven’t created any active projects yet."
+              action={
+                <ButtonLink href="/projects/new" variant="accent">
+                  Create Project
+                </ButtonLink>
+              }
+              className="mt-6"
+            />
+          ) : (
+            <ul className="mt-7 grid gap-6 md:grid-cols-2">
+              {ownedProjects.map((project) => (
+                <CurrentProjectCard
+                  key={project.id}
+                  project={project}
+                  courseCode={
+                    courseById.get(project.course_id)?.course_code ??
+                    "Course unavailable"
+                  }
+                  relationship="Owner"
+                  acceptedMemberCount={
+                    acceptedCountByProject.get(project.id) ?? 0
+                  }
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="mt-16" aria-labelledby="joined-projects-heading">
+          <div>
+            <p className="inline-block rounded-control bg-accent px-3 py-1 text-sm font-black">
+              Teams you joined
+            </p>
+            <h2
+              id="joined-projects-heading"
+              className="mt-4 text-3xl font-black tracking-tight sm:text-4xl"
+            >
+              Joined Projects
+            </h2>
+          </div>
+
+          {joinedProjects.length === 0 ? (
+            <EmptyState
+              title="No joined projects yet"
+              description="You haven’t joined any active projects yet."
+              action={
+                <ButtonLink href="/projects" variant="secondary">
+                  Browse Projects
+                </ButtonLink>
+              }
+              className="mt-6 bg-white"
+            />
+          ) : (
+            <ul className="mt-7 grid gap-6 md:grid-cols-2">
+              {joinedProjects.map((project) => (
+                <CurrentProjectCard
+                  key={project.id}
+                  project={project}
+                  courseCode={
+                    courseById.get(project.course_id)?.course_code ??
+                    "Course unavailable"
+                  }
+                  relationship="Member"
+                  ownerName={ownerById.get(project.owner_id)?.full_name}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <div className="mt-16 grid gap-6 lg:grid-cols-2">
+          <section
+            aria-labelledby="current-courses-heading"
+            className="rounded-feature border-2 border-dark bg-surface p-6 sm:p-8"
+          >
+            <h2
+              id="current-courses-heading"
+              className="text-2xl font-black tracking-tight"
+            >
+              <span className="rounded-control bg-accent px-2.5 py-1">
+                Current Courses
+              </span>
+            </h2>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+              {courses.map((course) => (
+                <li
+                  key={course.id}
+                  className="rounded-card border-2 border-dark bg-white p-4"
+                >
+                  <span className="font-black text-dark">
+                    {course.course_code}
+                  </span>
+                  <span className="mt-1 block text-sm leading-5 text-muted">
+                    {course.course_name}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </section>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2">
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
-              <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
-                Current courses
-              </h2>
-              <ul className="mt-4 space-y-3">
-                {courses.map((course) => (
-                  <li key={course.id} className="text-sm">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                      {course.course_code}
-                    </span>
-                    <span className="mt-0.5 block text-zinc-500 dark:text-zinc-400">
-                      {course.course_name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
-              <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+          <section
+            aria-labelledby="skills-heading"
+            className="rounded-feature border-2 border-dark bg-white p-6 shadow-card sm:p-8"
+          >
+            <h2
+              id="skills-heading"
+              className="text-2xl font-black tracking-tight"
+            >
+              <span className="rounded-control bg-accent px-2.5 py-1">
                 Skills
-              </h2>
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {skills.map((skill) => (
-                  <li
-                    key={skill.id}
-                    className="rounded-full bg-zinc-100 px-3 py-1.5 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
-                  >
-                    {skill.name}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-        </section>
-      </div>
-    </main>
+              </span>
+            </h2>
+            <ul className="mt-6 flex flex-wrap gap-2.5">
+              {skills.map((skill) => (
+                <li
+                  key={skill.id}
+                  className="rounded-full border-2 border-dark bg-surface px-3 py-1.5 text-sm font-semibold text-dark"
+                >
+                  {skill.name}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </main>
+    </div>
   );
 }
