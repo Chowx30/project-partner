@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ProjectForm } from "@/app/projects/new/project-form";
 import { AppHeader } from "@/src/components/app-header";
+import { Surface } from "@/src/components/ui/surface";
 import { requireCompletedProfile } from "@/src/lib/profile/access";
 import type { CourseOption } from "@/src/lib/profile/data";
 import { createClient } from "@/src/lib/supabase/server";
@@ -20,34 +21,41 @@ export default async function NewProjectPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-6 sm:px-6 dark:bg-zinc-950">
+    <div className="min-h-screen bg-background px-4 sm:px-6">
       <AppHeader profileId={user.id} activeItem="projects" />
 
-      <div className="mx-auto max-w-3xl">
-        <div className="py-10 sm:py-14">
-          <Link
-            href="/projects"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
-          >
-            ← Back to partner posts
-          </Link>
-          <div className="mt-6">
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Partner request
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white">
-              Create a partner post
-            </h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-              Share what you are working on and the kind of teammate you need.
-            </p>
-          </div>
+      <main className="mx-auto max-w-app pb-16 pt-8 sm:pb-20 sm:pt-12">
+        <section aria-labelledby="create-project-heading">
+          <div className="mx-auto max-w-form">
+            <Link
+              href="/projects"
+              className="inline-flex min-h-11 items-center font-bold text-dark underline decoration-accent decoration-2 underline-offset-4 hover:decoration-dark"
+            >
+              Back to Projects <span aria-hidden="true">→</span>
+            </Link>
 
-          <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-5 sm:p-7 dark:border-zinc-800 dark:bg-zinc-900">
-            <ProjectForm courses={coursesResult.data as CourseOption[]} />
-          </section>
-        </div>
-      </div>
-    </main>
+            <div className="mt-6">
+              <p className="inline-block rounded-control bg-accent px-3 py-1 text-sm font-black text-dark">
+                Create opportunity
+              </p>
+              <h1
+                id="create-project-heading"
+                className="mt-4 text-4xl font-black leading-tight tracking-[-0.035em] text-dark sm:text-5xl"
+              >
+                Create a Project
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+                Share what you are working on and find the right NSU students
+                to join you.
+              </p>
+            </div>
+
+            <Surface featured className="mt-8 p-0 sm:p-0">
+              <ProjectForm courses={coursesResult.data as CourseOption[]} />
+            </Surface>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
