@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { createProjectAction } from "@/app/projects/new/actions";
 import {
@@ -71,7 +71,24 @@ export function ProjectForm({ courses }: { courses: CourseOption[] }) {
     createProjectAction,
     initialCreateProjectFormState,
   );
+  const [courseQuery, setCourseQuery] = useState("");
+  const [selectedCourseId, setSelectedCourseId] = useState("");
   const errors: CreateProjectFieldErrors = state.errors ?? {};
+  const filteredCourses = useMemo(() => {
+    const query = courseQuery.trim().toLowerCase();
+
+    if (!query) {
+      return courses;
+    }
+
+    return courses.filter(
+      (course) =>
+        course.id === selectedCourseId ||
+        `${course.course_code} ${course.course_name}`
+          .toLowerCase()
+          .includes(query),
+    );
+  }, [courseQuery, courses, selectedCourseId]);
 
   return (
     <form action={formAction}>
@@ -102,13 +119,26 @@ export function ProjectForm({ courses }: { courses: CourseOption[] }) {
           </div>
 
           <div>
-            <label htmlFor="courseId" className={labelStyles}>
+            <label htmlFor="courseSearch" className={labelStyles}>
+              Search courses
+            </label>
+            <input
+              id="courseSearch"
+              type="search"
+              value={courseQuery}
+              onChange={(event) => setCourseQuery(event.target.value)}
+              disabled={pending}
+              placeholder="Search by course code or name"
+              className={`${inputStyles} mt-2`}
+            />
+            <label htmlFor="courseId" className={`${labelStyles} mt-4`}>
               Course
             </label>
             <select
               id="courseId"
               name="courseId"
-              defaultValue=""
+              value={selectedCourseId}
+              onChange={(event) => setSelectedCourseId(event.target.value)}
               required
               disabled={pending}
               aria-invalid={Boolean(errors.courseId)}
@@ -116,12 +146,15 @@ export function ProjectForm({ courses }: { courses: CourseOption[] }) {
               className={`${selectStyles} mt-2`}
             >
               <option value="">Choose a course</option>
-              {courses.map((course) => (
+              {filteredCourses.map((course) => (
                 <option key={course.id} value={course.id}>
                   {course.course_code} — {course.course_name}
                 </option>
               ))}
             </select>
+            {filteredCourses.length === 0 && (
+              <p className={helpTextStyles}>No matching courses found.</p>
+            )}
             <FieldError id="course-error" message={errors.courseId} />
           </div>
 
